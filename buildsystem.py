@@ -1015,7 +1015,7 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     if 'configure' in goals:
         print('goal = configure')
-        configure(config, output, source, dist, operatingSystem, sourcesrc)
+        configure(config, output, source, build, dist, operatingSystem, sourcesrc)
 
     if 'make' in goals:
         print('goal = make')
