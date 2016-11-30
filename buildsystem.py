@@ -124,7 +124,7 @@ def runProgram(config, workingDirectory, environment, arguments):
         print('------------------------------------------------------------------------------------')
         print('subprocess:', arguments)
         print('workingDirectory = ' + workingDirectory)
-        #print('environment:', environment)
+        print('environment:', environment)
 
     p = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment, cwd=workingDirectory)
     stdout = p.stdout.read().decode('utf-8')
@@ -670,24 +670,16 @@ def copySnapshot(config, localpath, fileNameExpanded, fileName):
 # Add Git information to an environment list
 ####################################################################################################
 
-def getGitInfo(environ):
+def getGitInfo(config environ):
 
     if (environ == None):
         environ = {}
 
-    git = which('git')
-    if git == None:
-        git = which('git.exe')
-        if git == None:
-            git = which('git.bat')
-            if git == None:
-                print('The git executable is not available')
-                sys.exit(1)
-
-    print('git = ' + git)
-
-    environ['GIT_ORIGIN'] = subprocess.check_output(git + " config --get remote.origin.url", shell=True)
-    environ['GIT_COMMIT'] = subprocess.check_output(git + " git rev-parse HEAD", shell=True)
+    environ['GIT_ORIGIN'] = subprocess.check_output("git config --get remote.origin.url", shell=True).decode('utf-8')
+    environ['GIT_COMMIT'] = subprocess.check_output("git rev-parse HEAD", shell=True).decode('utf-8')
+    environ['GROUPID'] = config["groupId"]
+    environ['ARTIFACTID'] = config["artifactId"]
+    environ['VERSION'] = multipleReplace(config["version"], config["properties"])
 
     return environ
 
