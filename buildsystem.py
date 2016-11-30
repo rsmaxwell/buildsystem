@@ -666,6 +666,20 @@ def copySnapshot(config, localpath, fileNameExpanded, fileName):
 
 
 ####################################################################################################
+# Add Git information to an environment list
+####################################################################################################
+
+def getGitInfo(environ):
+
+    if (environ == None):
+        environ = {}
+
+    environ['GIT_ORIGIN'] = subprocess.check_output("git config --get remote.origin.url", shell=True)
+    environ['GIT_COMMIT'] = subprocess.check_output("git rev-parse HEAD", shell=True)
+
+    return environ
+
+####################################################################################################
 # Read the "lastUpdated.json" file
 ####################################################################################################
 
@@ -1035,4 +1049,7 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     ####################################################################################################
     print('')
     print('SUCCESS')
+
+
+
 
