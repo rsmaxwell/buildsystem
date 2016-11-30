@@ -670,7 +670,7 @@ def copySnapshot(config, localpath, fileNameExpanded, fileName):
 # Add Git information to an environment list
 ####################################################################################################
 
-def getGitInfo(config environ):
+def getBuildInfo(config, environ):
 
     if (environ == None):
         environ = {}
@@ -697,7 +697,7 @@ def readLastUpdatedFile(config, directory):
 
     if not os.path.exists(filepath):
         if verbose(config):
-            print('Dependancy not found in local repository')
+            print('Dependency not found in local repository')
             print(filepath)
         return None
 
