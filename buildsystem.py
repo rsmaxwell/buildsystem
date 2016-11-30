@@ -89,6 +89,7 @@ def which(program):
         for path in os.environ["PATH"].split(os.pathsep):
             path = path.strip('"')
             exe_file = os.path.join(path, program)
+
             if is_exe(exe_file):
                 return exe_file
 
@@ -674,8 +675,19 @@ def getGitInfo(environ):
     if (environ == None):
         environ = {}
 
-    environ['GIT_ORIGIN'] = subprocess.check_output("git config --get remote.origin.url", shell=True)
-    environ['GIT_COMMIT'] = subprocess.check_output("git rev-parse HEAD", shell=True)
+    git = which('git')
+    if git == None:
+        git = which('git.exe')
+        if git == None:
+            git = which('git.bat')
+            if git == None:
+                print('The git executable is not available')
+                sys.exit(1)
+
+    print('git = ' + git)
+
+    environ['GIT_ORIGIN'] = subprocess.check_output(git + " config --get remote.origin.url", shell=True)
+    environ['GIT_COMMIT'] = subprocess.check_output(git + " git rev-parse HEAD", shell=True)
 
     return environ
 
