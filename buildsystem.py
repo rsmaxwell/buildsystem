@@ -1082,11 +1082,11 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     if 'generate' in goals:
         print('goal = generate')
-        generate(config, src, source, temp, os, operatingSystem, aol, packaging, dependances)
+        generate(config, src, source, temp, os, operatingSystem, linker, aol, packaging, dependances)
 
     if 'configure' in goals:
         print('goal = configure')
-        configure(config, output, source, build, dist, operatingSystem, sourcesrc)
+        configure(config, output, source, build, dist, operatingSystem, linker, sourcesrc)
 
     if 'make' in goals:
         print('goal = make')
