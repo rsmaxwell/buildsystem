@@ -886,20 +886,26 @@ def readWindowsRegistry(root, path, name):
 ####################################################################################################
 def getVisualStudioName():
 
-    if checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.12.0"):
-        return 'msvc2013'
+    if checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.14.0"):
+        return 2015
+
+    elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.13.0"):
+        return 2014
+
+    elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.12.0"):
+        return 2013
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.11.0"):
-        return 'msvc2012'
+        return 2012
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.10.0"):
-        return 'msvc2010'
+        return 2010
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.9.0"):
-        return 'msvc2008'
+        return 2008
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.8.0"):
-        return 'msvc2005'
+        return 2005
 
     else:
         print('Could not find Visual Studio')
@@ -1011,11 +1017,11 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
             print('The complier CL.EXE is not available')
             sys.exit(1)
 
-        linker = getVisualStudioName()
+        linkerVersion = getVisualStudioName()
+        linker = 'vs' + str(linkerVersion)
         aol = architecture + '-' + operatingSystem + '-' + linker
 
         print('aol = ' + aol)
-        sys.exit(1)
 
     elif operatingSystem == 'undefined':
         aol = 'undefined'
