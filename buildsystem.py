@@ -21,6 +21,7 @@ import json
 from os.path import expanduser
 import http.client
 import zipfile
+import winreg
 
 NONE = 0
 INFO = 1
@@ -854,6 +855,57 @@ def expandArtifact(config, mavenGroupId, mavenArtifactId, version, packaging, de
 
 
 ####################################################################################################
+# Does windows registry key exist
+####################################################################################################
+
+def checkWindowsRegistryKey(root, path):
+    try:
+        registry_key = winreg.OpenKey(root, path, 0, winreg.KEY_READ)
+        winreg.CloseKey(registry_key)
+        return True
+    except WindowsError:
+        return False
+
+
+####################################################################################################
+# Get the version of Visual Studio
+####################################################################################################
+
+def readWindowsRegistry(root, path, name):
+    try:
+        registry_key = winreg.OpenKey(root, path, 0, winreg.KEY_READ)
+        value, regtype = winreg.QueryValueEx(registry_key, name)
+        winreg.CloseKey(registry_key)
+        return value
+    except WindowsError:
+        return None
+
+
+####################################################################################################
+# Get the version of Visual Studio
+####################################################################################################
+def getVisualStudioName():
+
+    if checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.12.0"):
+        return 'msvc2013'
+
+    elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.11.0"):
+        return 'msvc2012'
+
+    elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.10.0"):
+        return 'msvc2010'
+
+    elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.9.0"):
+        return 'msvc2008'
+
+    elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.8.0"):
+        return 'msvc2005'
+
+    else:
+        print('Could not find Visual Studio')
+        sys.exit(1)
+
+####################################################################################################
 # Main Routine
 ####################################################################################################
 
@@ -955,14 +1007,15 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
         else:
             architecture = 'x86'
 
-        if which('cl.exe'):
-            linker = 'msvc'
-        else:
+        if not which('cl.exe'):
             print('The complier CL.EXE is not available')
             sys.exit(1)
 
+        linker = getVisualStudioName()
         aol = architecture + '-' + operatingSystem + '-' + linker
 
+        print('aol = ' + aol)
+        sys.exit(1)
 
     elif operatingSystem == 'undefined':
         aol = 'undefined'
@@ -1037,7 +1090,7 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     if 'make' in goals:
         print('goal = make')
-        make(config, src, source, sourcesrc, output, build, os, operatingSystem, aol)
+        make(config, src, source, sourcesrc, output, build, os, operatingSystem, linker, aol)
 
     if 'dist' in goals:
         print('goal = dist')
