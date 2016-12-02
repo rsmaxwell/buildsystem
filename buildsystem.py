@@ -1,5 +1,5 @@
 
-
+import collections
 import platform
 import os
 import subprocess
@@ -105,12 +105,10 @@ def inplace_change(filename, old_string, new_string):
     with open(filename) as f:
         s = f.read()
         if old_string not in s:
-            # print('"{old_string}" not found in {filename}.'.format(**locals()))
             return
 
     # Safely write the changed content, if found in the file
     with open(filename, 'w') as f:
-        # print('Changing "{old_string}" to "{new_string}" in {filename}'.format(**locals()))
         s = s.replace(old_string, new_string)
         f.write(s)
 
@@ -125,6 +123,7 @@ def runProgram(config, workingDirectory, environment, arguments):
         print('------------------------------------------------------------------------------------')
         print('subprocess:', arguments)
         print('workingDirectory = ' + workingDirectory)
+    if debug(config):
         print('environment:', environment)
 
     p = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment, cwd=workingDirectory)
@@ -887,25 +886,25 @@ def readWindowsRegistry(root, path, name):
 def getVisualStudioName():
 
     if checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.14.0"):
-        return 2015
+        return 'vs2015'
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.13.0"):
-        return 2014
+        return 'vs2014'
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.12.0"):
-        return 2013
+        return 'vs2013'
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.11.0"):
-        return 2012
+        return 'vs2012'
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.10.0"):
-        return 2010
+        return 'vs2010'
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.9.0"):
-        return 2008
+        return 'vs2008'
 
     elif checkWindowsRegistryKey(winreg.HKEY_CLASSES_ROOT, "VisualStudio.DTE.8.0"):
-        return 2005
+        return 'vs2005'
 
     else:
         print('Could not find Visual Studio')
@@ -988,42 +987,41 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     ####################################################################################################
     # Detect the environment
     ####################################################################################################
+    
+    aol = collections.namedtuple('name', 'architecture', 'operatingSystem', 'linker')
+    
     if platform.system().startswith("Linux"):
-        operatingSystem = 'Linux'
+        aol.operatingSystem = 'Linux'
 
     elif platform.system().startswith("CYGWIN"):
-        operatingSystem = 'Cygwin'
+        aol.operatingSystem = 'Cygwin'
 
     elif platform.system().startswith("Windows"):
 
         if os.environ.get("MSYSTEM"):
-            operatingSystem = 'MinGW'
+            aol.operatingSystem = 'MinGW'
 
         else:
-            operatingSystem = 'Windows'
+            aol.operatingSystem = 'Windows'
 
     else:
         print('The OperatingSystem is not defined')
         sys.exit(1)
 
 
-    if operatingSystem == 'Windows':
+    if aol.operatingSystem == 'Windows':
         if os.path.exists(os.environ['ProgramFiles(x86)']):
-            architecture = 'x86_64'
+            aol.architecture = 'x86_64'
         else:
-            architecture = 'x86'
+            aol.architecture = 'x86'
 
         if not which('cl.exe'):
             print('The complier CL.EXE is not available')
             sys.exit(1)
 
-        linkerVersion = getVisualStudioName()
-        linker = 'vs' + str(linkerVersion)
-        aol = architecture + '-' + operatingSystem + '-' + linker
+        aol.linker = getVisualStudioName()
 
-        print('aol = ' + aol)
-
-    elif operatingSystem == 'undefined':
+    elif aol.operatingSystem == 'undefined':
         aol = 'undefined'
 
     else:
@@ -1043,22 +1041,23 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
         for line in lines:
             if line.startswith('Target:'):
                 words = line.split()
-                aol = words[1]
+                word = words[1]
                 break
 
-        string = aol.split('-')
-        architecture = string[0]
-        operatingSystem = string[1]
-        linker = string[2]
+        string = word.split('-')
+        aol.architecture = string[0]
+        aol.operatingSystem = string[1]
+        aol.linker = string[2]
 
     if verbose(config):
-        print('architecture    =', architecture)
-        print('operatingSystem =', operatingSystem)
-        print('linker          =', linker)
+        print('architecture    =', aol.architecture)
+        print('operatingSystem =', aol.operatingSystem)
+        print('linker          =', aol.linker)
 
-    print('AOL =', aol)
+    aol.name = aol.architecture + '-' + aol.operatingSystem + '-' + aol.linker
+    print('AOL =', aol.name)
 
-    # Windows      x86_64-Windows-msvc
+    # Windows      x86_64-Windows-vs2015
     # Linux        x86_64-linux-gnu
     # Cygwin       x86_64-pc-cygwin
     # MinGW        i686-w64-mingw32
@@ -1067,14 +1066,16 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     # Init
     ####################################################################################################
 
-    src = os.path.abspath('./src')
-    build = os.path.abspath('./build')
-    source = os.path.abspath(build + '/source')
-    sourcesrc = os.path.abspath(source + '/src')
-    temp = os.path.abspath(build + '/temp')
-    output = os.path.abspath(build + '/output')
-    dist = os.path.abspath(build + '/dist')
-    dependances = os.path.abspath(build + '/dependances')
+    dirs = collections.namedtuple('src', 'build', 'source', 'sourcesrc', 'temp', 'output', 'dist', 'dependances')
+
+    dirs.src = os.path.abspath('./src')
+    dirs.build = os.path.abspath('./build')
+    dirs.source = os.path.abspath(build + '/source')
+    dirs.sourcesrc = os.path.abspath(source + '/src')
+    dirs.temp = os.path.abspath(build + '/temp')
+    dirs.output = os.path.abspath(build + '/output')
+    dirs.dist = os.path.abspath(build + '/dist')
+    dirs.dependances = os.path.abspath(build + '/dependances')
 
     packaging = 'zip'
 
@@ -1084,27 +1085,27 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     if 'clean' in goals:
         print('goal = clean')
-        clean(config, build)
+        clean(config, dirs, aol, packaging)
 
     if 'generate' in goals:
         print('goal = generate')
-        generate(config, src, source, temp, os, operatingSystem, linker, aol, packaging, dependances)
+        generate(config, dirs, aol, packaging)
 
     if 'configure' in goals:
         print('goal = configure')
-        configure(config, output, source, build, dist, operatingSystem, linker, sourcesrc)
+        configure(config, dirs, aol, packaging)
 
     if 'make' in goals:
         print('goal = make')
-        make(config, src, source, sourcesrc, output, build, os, operatingSystem, linker, aol)
+        make(config, dirs, aol, packaging)
 
     if 'dist' in goals:
         print('goal = dist')
-        distribution(config, sourcesrc, build, output, dist, os, operatingSystem, aol, packaging)
+        distribution(config, dirs, aol, packaging)
 
     if 'deploy' in goals:
         print('goal = deploy')
-        deploy(config, build, os, aol, packaging)
+        deploy(config, dirs, aol, packaging)
 
 
     ####################################################################################################
