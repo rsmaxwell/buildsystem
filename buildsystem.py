@@ -1,5 +1,5 @@
 
-import collections
+
 import platform
 import os
 import subprocess
@@ -29,6 +29,107 @@ VERBOSE = 2
 DEBUG = 3
 
 
+####################################################################################################
+# Class to remember the various build locations
+####################################################################################################
+
+class Location:
+    
+    def __init__(self):    
+    
+        self.src = os.path.abspath('./src')
+        self.build = os.path.abspath('./build')
+        self.source = os.path.abspath(self.build + '/source')
+        self.sourcesrc = os.path.abspath(self.source + '/src')
+        self.temp = os.path.abspath(self.build + '/temp')
+        self.output = os.path.abspath(self.build + '/output')
+        self.dist = os.path.abspath(self.build + '/dist')
+        self.dependances = os.path.abspath(self.build + '/dependances')
+    
+    
+####################################################################################################
+# Class to Detect and report on the build environment
+#
+# Windows      x86_64-Windows-vs2015
+# Linux        x86_64-linux-gnu
+# Cygwin       x86_64-pc-cygwin
+# MinGW        i686-w64-mingw32 
+####################################################################################################     
+    
+class AOL:
+        
+    def __init__(self):
+      
+        if platform.system().startswith("Linux"):
+            self.operatingSystem = 'Linux'
+    
+        elif platform.system().startswith("CYGWIN"):
+            self.operatingSystem = 'Cygwin'
+    
+        elif platform.system().startswith("Windows"):
+    
+            if os.environ.get("MSYSTEM"):
+                self.operatingSystem = 'MinGW'
+    
+            else:
+                self.operatingSystem = 'Windows'
+    
+        else:
+            print('The OperatingSystem is not defined')
+            sys.exit(1)
+    
+    
+        if self.operatingSystem == 'Windows':
+            if os.path.exists(os.environ['ProgramFiles(x86)']):
+                self.architecture = 'x86_64'
+            else:
+                self.architecture = 'x86'
+    
+            if not which('cl.exe'):
+                print('The complier CL.EXE is not available')
+                sys.exit(1)
+    
+            self.linker = getVisualStudioName()
+    
+        else:
+            if which('gcc'):
+                gcc = 'gcc'
+    
+            elif which('gcc.exe'):
+                gcc = 'gcc.exe'
+    
+            else:
+                print('The Compiler gcc is not available')
+                sys.exit(1)
+    
+            stdout, stderr, returncode = runProgram(config, os.getcwd(), os.environ, [gcc, '-v'])
+    
+            lines = stderr.splitlines()
+            for line in lines:
+                if line.startswith('Target:'):
+                    words = line.split()
+                    word = words[1]
+                    break
+    
+            string = word.split('-')
+            self.architecture = string[0]
+            self.operatingSystem = string[1]
+            self.linker = string[2]
+
+
+    def __str__(self):
+         return self.architecture + '-' + self.operatingSystem + '-' + self.linker        
+ 
+ 
+ 
+####################################################################################################
+# Print a password!
+####################################################################################################
+
+def passwordToString(text):
+    return '*' * len(text) 
+
+   
 ####################################################################################################
 # Replace the variables using a dictionary
 ####################################################################################################
@@ -376,7 +477,7 @@ def getServersConfigurationFromSettingsFile(config):
         print('    servers:')
         for item in servers.items():
             id = item[0]
-            print('        ' + id + ': ( ' + servers[id]['username'] + ' : ' + servers[id]['password'] + ' )')
+            print('        ' + id + ': ( ' + servers[id]['username'] + ' : ' + passwordToString(servers[id]['password']) + ' )')
 
     return servers
 
@@ -413,7 +514,7 @@ def rebuildMetadata(config, filepath):
 
     if debug(config):
         print('    username = ' + username)
-        print('    password = ' + password)
+        print('    password = ' + passwordToString(password))
 
     r = requests.delete(url, auth=(username, password))
     statusCode = r.status_code
@@ -450,7 +551,7 @@ def uploadFile(config, file, repositoryID, url):
 
     if debug(config):
         print('    username = ' + server['username'])
-        print('    password = ' + server['password'])
+        print('    password = ' + passwordToString(server['password']))
 
     r = requests.post(url, data=file, auth=(server['username'], server['password']))
     statusCode = r.status_code
@@ -984,98 +1085,15 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
             print('    ' + key + ' = ' + properties[key])
 
 
-    ####################################################################################################
-    # Detect the environment
-    ####################################################################################################
-    
-    aol = collections.namedtuple('name', 'architecture', 'operatingSystem', 'linker')
-    
-    if platform.system().startswith("Linux"):
-        aol.operatingSystem = 'Linux'
 
-    elif platform.system().startswith("CYGWIN"):
-        aol.operatingSystem = 'Cygwin'
-
-    elif platform.system().startswith("Windows"):
-
-        if os.environ.get("MSYSTEM"):
-            aol.operatingSystem = 'MinGW'
-
-        else:
-            aol.operatingSystem = 'Windows'
-
-    else:
-        print('The OperatingSystem is not defined')
-        sys.exit(1)
-
-
-    if aol.operatingSystem == 'Windows':
-        if os.path.exists(os.environ['ProgramFiles(x86)']):
-            aol.architecture = 'x86_64'
-        else:
-            aol.architecture = 'x86'
-
-        if not which('cl.exe'):
-            print('The complier CL.EXE is not available')
-            sys.exit(1)
-
-        aol.linker = getVisualStudioName()
-
-    elif aol.operatingSystem == 'undefined':
-        aol = 'undefined'
-
-    else:
-        if which('gcc'):
-            gcc = 'gcc'
-
-        elif which('gcc.exe'):
-            gcc = 'gcc.exe'
-
-        else:
-            print('The Compiler gcc is not available')
-            sys.exit(1)
-
-        stdout, stderr, returncode = runProgram(config, os.getcwd(), os.environ, [gcc, '-v'])
-
-        lines = stderr.splitlines()
-        for line in lines:
-            if line.startswith('Target:'):
-                words = line.split()
-                word = words[1]
-                break
-
-        string = word.split('-')
-        aol.architecture = string[0]
-        aol.operatingSystem = string[1]
-        aol.linker = string[2]
-
-    if verbose(config):
-        print('architecture    =', aol.architecture)
-        print('operatingSystem =', aol.operatingSystem)
-        print('linker          =', aol.linker)
-
-    aol.name = aol.architecture + '-' + aol.operatingSystem + '-' + aol.linker
-    print('AOL =', aol.name)
-
-    # Windows      x86_64-Windows-vs2015
-    # Linux        x86_64-linux-gnu
-    # Cygwin       x86_64-pc-cygwin
-    # MinGW        i686-w64-mingw32
 
     ####################################################################################################
     # Init
     ####################################################################################################
 
-    dirs = collections.namedtuple('src', 'build', 'source', 'sourcesrc', 'temp', 'output', 'dist', 'dependances')
 
-    dirs.src = os.path.abspath('./src')
-    dirs.build = os.path.abspath('./build')
-    dirs.source = os.path.abspath(build + '/source')
-    dirs.sourcesrc = os.path.abspath(source + '/src')
-    dirs.temp = os.path.abspath(build + '/temp')
-    dirs.output = os.path.abspath(build + '/output')
-    dirs.dist = os.path.abspath(build + '/dist')
-    dirs.dependances = os.path.abspath(build + '/dependances')
+    aol = AOL()
+    location = Location()
 
     packaging = 'zip'
 
@@ -1113,6 +1131,7 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     ####################################################################################################
     print('')
     print('SUCCESS')
+
 
 
 
