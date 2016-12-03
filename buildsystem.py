@@ -35,7 +35,7 @@ DEBUG = 3
 
 class Location:
     
-    def __init__(self):    
+    def __init__(self, config):    
     
         self.src = os.path.abspath('./src')
         self.build = os.path.abspath('./build')
@@ -58,7 +58,7 @@ class Location:
     
 class AOL:
         
-    def __init__(self):
+    def __init__(self, config):
       
         if platform.system().startswith("Linux"):
             self.operatingSystem = 'Linux'
@@ -461,7 +461,10 @@ def getServersConfigurationFromSettingsFile(config):
                 value = 'None'
                 if item.text != None:
                     value = item.text
-                print('        tag: ' + item.tag + ' : ' + value)
+                if item.tag == 'password':
+                    print('        tag: ' + item.tag + ' : ' + passwordToString(value))
+                else:
+                    print('        tag: ' + item.tag + ' : ' + value)
 
             if item.tag == 'id':
                 id = item.text
@@ -1091,9 +1094,8 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     # Init
     ####################################################################################################
 
-
-    aol = AOL()
-    location = Location()
+    aol = AOL(config)
+    location = Location(config)
 
     packaging = 'zip'
 
@@ -1103,27 +1105,27 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     if 'clean' in goals:
         print('goal = clean')
-        clean(config, dirs, aol, packaging)
+        clean(config, location, aol, packaging)
 
     if 'generate' in goals:
         print('goal = generate')
-        generate(config, dirs, aol, packaging)
+        generate(config, location, aol, packaging)
 
     if 'configure' in goals:
         print('goal = configure')
-        configure(config, dirs, aol, packaging)
+        configure(config, location, aol, packaging)
 
     if 'make' in goals:
         print('goal = make')
-        make(config, dirs, aol, packaging)
+        make(config, location, aol, packaging)
 
     if 'dist' in goals:
         print('goal = dist')
-        distribution(config, dirs, aol, packaging)
+        distribution(config, location, aol, packaging)
 
     if 'deploy' in goals:
         print('goal = deploy')
-        deploy(config, dirs, aol, packaging)
+        deploy(config, location, aol, packaging)
 
 
     ####################################################################################################
