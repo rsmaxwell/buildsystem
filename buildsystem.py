@@ -37,14 +37,14 @@ class Location:
     
     def __init__(self, config):    
     
-        self.src = os.path.abspath('./src')
-        self.build = os.path.abspath('./build')
-        self.source = os.path.abspath(self.build + '/source')
-        self.sourcesrc = os.path.abspath(self.source + '/src')
-        self.temp = os.path.abspath(self.build + '/temp')
-        self.output = os.path.abspath(self.build + '/output')
-        self.dist = os.path.abspath(self.build + '/dist')
-        self.dependances = os.path.abspath(self.build + '/dependances')
+        self.src = './src'
+        self.build = './build'
+        self.source = self.build + '/source'
+        self.sourcesrc = self.source + '/src'
+        self.temp = self.build + '/temp'
+        self.output = self.build + '/output'
+        self.dist = self.build + '/dist'
+        self.dependances = self.build + '/dependances'
     
     
 ####################################################################################################
@@ -797,7 +797,7 @@ def readLastUpdatedFile(config, directory):
         print('readLastUpdatedFile:')
         print('    directory = ' + directory)
 
-    filepath = os.path.abspath(directory + '/' + 'lastUpdated.json')
+    filepath = directory + '/' + 'lastUpdated.json'
 
     if not os.path.exists(filepath):
         if verbose(config):
@@ -833,7 +833,7 @@ def writeLastUpdatedFile(config, directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    filepath = os.path.abspath(directory + '/' + 'lastUpdated.json')
+    filepath = directory + '/' + 'lastUpdated.json'
 
     with open(filepath, 'w') as outfile:
         json.dump(data, outfile, indent=4, sort_keys=True, separators=(',', ':'))
@@ -856,7 +856,7 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId,  version, packaging)
     path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + version
 
     home = expanduser('~')
-    localpath = os.path.abspath(home + '/.m2/repository/' + path)
+    localpath = home + '/.m2/repository/' + path
     fileName = mavenArtifactId + '-' + version
 
     if debug(config):
@@ -900,8 +900,8 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId,  version, packaging)
             else:
                 fileNameExpanded = mavenArtifactId + '-' + version
 
-            localFilenameExpanded = os.path.abspath(localpath + '/' + fileNameExpanded)
-            localFilename = os.path.abspath(localpath + '/' + fileName)
+            localFilenameExpanded = localpath + '/' + fileNameExpanded
+            localFilename = localpath + '/' + fileName
 
             url = repositoryUrl + '/' + path + '/' + fileNameExpanded
 
@@ -942,8 +942,8 @@ def expandArtifact(config, mavenGroupId, mavenArtifactId, version, packaging, de
 
     home = expanduser('~')
     path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + version
-    localpath = os.path.abspath(home + '/.m2/repository/' + path + '/' + fileName)
-    directory = os.path.abspath(dependancyDirectory + '/' + mavenArtifactId.split('-')[0])
+    localpath = home + '/.m2/repository/' + path + '/' + fileName
+    directory = dependancyDirectory + '/' + mavenArtifactId.split('-')[0]
 
     if debug(config):
         print('expandArtifact:')
