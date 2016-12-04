@@ -22,6 +22,7 @@ from os.path import expanduser
 import http.client
 import zipfile
 import winreg
+import errno 
 
 NONE = 0
 INFO = 1
@@ -37,15 +38,20 @@ class Location:
     
     def __init__(self, config):    
     
-        self.src = './src'
-        self.build = './build'
-        self.source = self.build + '/source'
-        self.sourcesrc = self.source + '/src'
-        self.temp = self.build + '/temp'
-        self.output = self.build + '/output'
-        self.dist = self.build + '/dist'
-        self.dependances = self.build + '/dependances'
+        self.src = './src/'
+        self.archive = 'archive/'
+
+        self.build = './build/'
+        self.source = 'source/'
+        self.sourcesrc = 'src/'
+        self.dependances = 'dependances/'
+        self.temp = 'temp/'
+        self.output = 'output/'
+        self.artifact = 'artifact/'
+        self.dist = 'dist/'
+        self.distTemp = 'dist.temp/'
     
+        self.buildTemp = './build.temp/'
     
 ####################################################################################################
 # Class to Detect and report on the build environment
@@ -120,8 +126,36 @@ class AOL:
     def __str__(self):
          return self.architecture + '-' + self.operatingSystem + '-' + self.linker        
  
+
+####################################################################################################
+# Make a directory 
+####################################################################################################
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
  
- 
+
+#
+####################################################################################################
+# Delete a directory 
+# 
+# Windows sometimes defers the delete while it saves metadata. 
+# So we 'rename' the directory first (which is immediate), then delete the directory. 
+# This avoids a 'permission' problem when trying to create the directory immediatly afterwards
+####################################################################################################
+
+def rmdir(directory, temp):
+    if os.path.exists(directory):
+        os.rename(directory, temp)
+        shutil.rmtree(temp, ignore_errors=True)
+
+
 ####################################################################################################
 # Print a password!
 ####################################################################################################
@@ -1014,6 +1048,16 @@ def getVisualStudioName():
         print('Could not find Visual Studio')
         sys.exit(1)
 
+
+
+
+####################################################################################################
+# Clean
+####################################################################################################
+
+def defaultClean(config, location, aol, packaging):
+    rmdir(location.build, location.buildTemp)
+
 ####################################################################################################
 # Main Routine
 ####################################################################################################
@@ -1086,8 +1130,6 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
         print('Number of config properties = ' + str(len(properties)))
         for key in properties:
             print('    ' + key + ' = ' + properties[key])
-
-
 
 
     ####################################################################################################
