@@ -37,14 +37,15 @@ DEBUG = 3
 class Location:
     
     def __init__(self, config):    
-    
+            
         self.src = './src/'
         self.archive = 'archive/'
+        self.make = 'make/'
 
         self.build = './build/'
         self.source = 'source/'
         self.sourcesrc = 'src/'
-        self.dependances = 'dependances/'
+        self.dependencies = 'dependencies/'
         self.temp = 'temp/'
         self.output = 'output/'
         self.artifact = 'artifact/'
@@ -67,25 +68,25 @@ class AOL:
     def __init__(self, config):
       
         if platform.system().startswith("Linux"):
-            self.operatingSystem = 'Linux'
+            self.operatingSystem = 'linux'
     
         elif platform.system().startswith("CYGWIN"):
-            self.operatingSystem = 'Cygwin'
+            self.operatingSystem = 'cygwin'
     
         elif platform.system().startswith("Windows"):
     
             if os.environ.get("MSYSTEM"):
-                self.operatingSystem = 'MinGW'
+                self.operatingSystem = 'mingw'
     
             else:
-                self.operatingSystem = 'Windows'
+                self.operatingSystem = 'windows'
     
         else:
             print('The OperatingSystem is not defined')
             sys.exit(1)
     
     
-        if self.operatingSystem == 'Windows':
+        if self.operatingSystem == 'windows':
             if os.path.exists(os.environ['ProgramFiles(x86)']):
                 self.architecture = 'x86_64'
             else:
