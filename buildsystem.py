@@ -29,6 +29,7 @@ INFO = 1
 VERBOSE = 2
 DEBUG = 3
 
+SRC_DIR = './src/'
 ARCHIVE_DIR = './src/archive/'
 MAKE_DIR = './src/make/'
 BUILD_DIR = './build/'
@@ -46,30 +47,7 @@ DIST_LIBS_SHARED_DIR = './build/dist/libs/shared/'
 DIST_LIBS_STATIC_DIR = './build/dist/libs/static/'
 DIST_HEADERS_DIR = './build/dist/headers/'
 
-
-####################################################################################################
-# Class to remember the various build locations
-####################################################################################################
-
-class Location:
-
-    def __init__(self, config):
-
-        self.src = './src/'
-        self.archive = 'archive/'
-        self.make = 'make/'
-
-        self.build = './build/'
-        self.source = 'source/'
-        self.sourcesrc = 'src/'
-        self.dependencies = 'dependencies/'
-        self.temp = 'temp/'
-        self.output = 'output/'
-        self.artifact = 'artifact/'
-        self.dist = 'dist/'
-        self.distTemp = 'dist.temp/'
-
-        self.buildTemp = './build.temp/'
+PACKAGING = 'zip'
 
 ####################################################################################################
 # Class to Detect and report on the build environment
@@ -678,7 +656,7 @@ def makePom(config, mavenGroupId, mavenArtifactId, version, packaging):
     lines.append('  <groupId>' + mavenGroupId  + '</groupId>\n')
     lines.append('  <artifactId>' + mavenArtifactId + '</artifactId>\n')
     lines.append('  <version>' + version + '</version>\n')
-    lines.append('  <packaging>' + packaging + '</packaging>\n')
+    lines.append('  <packaging>' + PACKAGING + '</packaging>\n')
     lines.append('</project>\n')
 
     buffer = BytesIO()
@@ -692,14 +670,13 @@ def makePom(config, mavenGroupId, mavenArtifactId, version, packaging):
 # Upload a file and its md5 and its sha1 to Nexus
 ####################################################################################################
 
-def uploadArtifact(config, mavenGroupId, mavenArtifactId, version, packaging, filename):
+def uploadArtifact(config, mavenGroupId, mavenArtifactId, version, filename):
 
     if debug(config):
         print('uploadArtifact:')
         print('    mavenGroupId =', mavenGroupId)
         print('    mavenArtifactId =', mavenArtifactId)
         print('    version =', version)
-        print('    packaging =', packaging)
         print('    filename =', filename)
 
     snap = version.endswith('SNAPSHOT')
@@ -731,11 +708,11 @@ def uploadArtifact(config, mavenGroupId, mavenArtifactId, version, packaging, fi
 
     # Upload base file
     file = open(filename, 'rb')
-    uploadFileAndHashes(config, file, filePathVersion, fileName, packaging)
+    uploadFileAndHashes(config, file, filePathVersion, fileName, PACKAGING)
     file.close()
 
     # Upload the pom file
-    file = makePom(config, mavenGroupId, mavenArtifactId, version, packaging)
+    file = makePom(config, mavenGroupId, mavenArtifactId, version, PACKAGING)
 
     if debug(config):
         file.seek(0, os.SEEK_SET)
@@ -894,14 +871,13 @@ def writeLastUpdatedFile(config, directory):
 # Download an artifact
 ####################################################################################################
 
-def downloadArtifact(config, mavenGroupId, mavenArtifactId,  version, packaging):
+def downloadArtifact(config, mavenGroupId, mavenArtifactId, version):
 
     if debug(config):
         print('downloadArtifact:')
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
         print('    version = ' + version)
-        print('    packaging = ' + packaging)
 
     snap = version.endswith('SNAPSHOT')
 
@@ -922,7 +898,7 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId,  version, packaging)
     if snap:
         searchRemoteRepositories = True
 
-    elif os.path.exists(localpath + '/' + fileName + '.' + packaging):
+    elif os.path.exists(localpath + '/' + fileName + '.' + PACKAGING):
         searchRemoteRepositories = False
         if verbose(config):
             print('Artifact already exists in local repository')
@@ -962,7 +938,7 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId,  version, packaging)
                 print('    localFilenameExpanded = ' + localFilenameExpanded)
                 print('    url = ' + url)
 
-            rc = downloadFileAndHashes(config, url + '.' + packaging, localFilename + '.' + packaging)
+            rc = downloadFileAndHashes(config, url + '.' + PACKAGING, localFilename + '.' + PACKAGING)
             if rc != 0:
                 if debug(config):
                     print('    Artifact not found in Repository')
@@ -980,17 +956,16 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId,  version, packaging)
 # Expand artifact
 ####################################################################################################
 
-def expandArtifact(config, mavenGroupId, mavenArtifactId, version, packaging, dependancyDirectory):
+def expandArtifact(config, mavenGroupId, mavenArtifactId, version, dependancyDirectory):
 
     if debug(config):
         print('expandArtifact:')
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
         print('    version = ' + version)
-        print('    packaging = ' + packaging)
         print('    dependancyDirectory = ' + dependancyDirectory)
 
-    fileName = mavenArtifactId + '-' + version + '.' + packaging
+    fileName = mavenArtifactId + '-' + version + '.' + PACKAGING
 
     home = expanduser('~')
     path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + version
@@ -1073,8 +1048,8 @@ def getVisualStudioName():
 # Clean
 ####################################################################################################
 
-def defaultClean(config, location, aol, packaging):
-    rmdir(location.build, location.buildTemp)
+def defaultClean(config, aol):
+    rmdir(BUILD_DIR, BUILDTEMP_DIR)
 
 ####################################################################################################
 # Main Routine
@@ -1155,9 +1130,6 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     ####################################################################################################
 
     aol = AOL(config)
-    location = Location(config)
-
-    packaging = 'zip'
 
     ####################################################################################################
     # Call the build processes
@@ -1165,27 +1137,27 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     if 'clean' in goals:
         print('goal = clean')
-        clean(config, location, aol, packaging)
+        clean(config, aol)
 
     if 'generate' in goals:
         print('goal = generate')
-        generate(config, location, aol, packaging)
+        generate(config, aol)
 
     if 'configure' in goals:
         print('goal = configure')
-        configure(config, location, aol, packaging)
+        configure(config, aol)
 
     if 'make' in goals:
         print('goal = make')
-        make(config, location, aol, packaging)
+        make(config, aol)
 
     if 'dist' in goals:
         print('goal = dist')
-        distribution(config, location, aol, packaging)
+        distribution(config, aol)
 
     if 'deploy' in goals:
         print('goal = deploy')
-        deploy(config, location, aol, packaging)
+        deploy(config, aol)
 
 
     ####################################################################################################
