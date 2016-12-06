@@ -22,12 +22,29 @@ from os.path import expanduser
 import http.client
 import zipfile
 import winreg
-import errno 
+import errno
 
 NONE = 0
 INFO = 1
 VERBOSE = 2
 DEBUG = 3
+
+ARCHIVE_DIR = './src/archive/'
+MAKE_DIR = './src/make/'
+BUILD_DIR = './build/'
+SOURCE_DIR = './build/source/'
+SOURCESRC_DIR = './build/source/src/'
+SOURCESRCLIB_DIR = './build/source/src/lib/'
+DEPENDENCIES_DIR = './build/dependencies/'
+TEMP_DIR = './build/temp/'
+OUTPUT_DIR = './build/output/'
+ARTIFACT_DIR = './build/artifact/'
+DIST_DIR = './build/dist/'
+DISTTEMP_DIR = './build/dist.temp/'
+BUILDTEMP_DIR = './build.temp/'
+DIST_LIBS_SHARED_DIR = './build/dist/libs/shared/'
+DIST_LIBS_STATIC_DIR = './build/dist/libs/static/'
+DIST_HEADERS_DIR = './build/dist/headers/'
 
 
 ####################################################################################################
@@ -35,9 +52,9 @@ DEBUG = 3
 ####################################################################################################
 
 class Location:
-    
-    def __init__(self, config):    
-            
+
+    def __init__(self, config):
+
         self.src = './src/'
         self.archive = 'archive/'
         self.make = 'make/'
@@ -51,73 +68,73 @@ class Location:
         self.artifact = 'artifact/'
         self.dist = 'dist/'
         self.distTemp = 'dist.temp/'
-    
+
         self.buildTemp = './build.temp/'
-    
+
 ####################################################################################################
 # Class to Detect and report on the build environment
 #
 # Windows      x86_64-Windows-vs2015
 # Linux        x86_64-linux-gnu
 # Cygwin       x86_64-pc-cygwin
-# MinGW        i686-w64-mingw32 
-####################################################################################################     
-    
+# MinGW        i686-w64-mingw32
+####################################################################################################
+
 class AOL:
-        
+
     def __init__(self, config):
-      
+
         if platform.system().startswith("Linux"):
             self.operatingSystem = 'linux'
-    
+
         elif platform.system().startswith("CYGWIN"):
             self.operatingSystem = 'cygwin'
-    
+
         elif platform.system().startswith("Windows"):
-    
+
             if os.environ.get("MSYSTEM"):
                 self.operatingSystem = 'mingw'
-    
+
             else:
                 self.operatingSystem = 'windows'
-    
+
         else:
             print('The OperatingSystem is not defined')
             sys.exit(1)
-    
-    
+
+
         if self.operatingSystem == 'windows':
             if os.path.exists(os.environ['ProgramFiles(x86)']):
                 self.architecture = 'x86_64'
             else:
                 self.architecture = 'x86'
-    
+
             if not which('cl.exe'):
                 print('The complier CL.EXE is not available')
                 sys.exit(1)
-    
+
             self.linker = getVisualStudioName()
-    
+
         else:
             if which('gcc'):
                 gcc = 'gcc'
-    
+
             elif which('gcc.exe'):
                 gcc = 'gcc.exe'
-    
+
             else:
                 print('The Compiler gcc is not available')
                 sys.exit(1)
-    
+
             stdout, stderr, returncode = runProgram(config, os.getcwd(), os.environ, [gcc, '-v'])
-    
+
             lines = stderr.splitlines()
             for line in lines:
                 if line.startswith('Target:'):
                     words = line.split()
                     word = words[1]
                     break
-    
+
             string = word.split('-')
             self.architecture = string[0]
             self.operatingSystem = string[1]
@@ -125,11 +142,11 @@ class AOL:
 
 
     def __str__(self):
-         return self.architecture + '-' + self.operatingSystem + '-' + self.linker        
- 
+         return self.architecture + '-' + self.operatingSystem + '-' + self.linker
+
 
 ####################################################################################################
-# Make a directory 
+# Make a directory
 ####################################################################################################
 
 def mkdir_p(path):
@@ -140,14 +157,14 @@ def mkdir_p(path):
             pass
         else:
             raise
- 
+
 
 #
 ####################################################################################################
-# Delete a directory 
-# 
-# Windows sometimes defers the delete while it saves metadata. 
-# So we 'rename' the directory first (which is immediate), then delete the directory. 
+# Delete a directory
+#
+# Windows sometimes defers the delete while it saves metadata.
+# So we 'rename' the directory first (which is immediate), then delete the directory.
 # This avoids a 'permission' problem when trying to create the directory immediatly afterwards
 ####################################################################################################
 
@@ -162,9 +179,9 @@ def rmdir(directory, temp):
 ####################################################################################################
 
 def passwordToString(text):
-    return '*' * len(text) 
+    return '*' * len(text)
 
-   
+
 ####################################################################################################
 # Replace the variables using a dictionary
 ####################################################################################################
