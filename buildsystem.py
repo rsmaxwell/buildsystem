@@ -21,8 +21,13 @@ import json
 from os.path import expanduser
 import http.client
 import zipfile
-import winreg
 import errno
+
+try:
+    import winreg
+except ImportError:
+    pass
+
 
 NONE = 0
 INFO = 1
