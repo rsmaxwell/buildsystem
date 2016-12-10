@@ -165,6 +165,21 @@ def passwordToString(text):
     return '*' * len(text)
 
 
+
+####################################################################################################
+# Replace a specific line in a file
+####################################################################################################
+
+def replaceLineInFile(filename, linenumber, text):
+    with open(filename, 'r') as file:
+        data = file.readlines()
+
+    data[linenumber] = text
+
+    with open(filename, 'w') as file:
+        file.writelines( data )
+
+
 ####################################################################################################
 # Replace the variables using a dictionary
 ####################################################################################################
