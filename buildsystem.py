@@ -35,12 +35,11 @@ VERBOSE = 2
 DEBUG = 3
 
 SRC_DIR             = './src/'
-MAKE_DIR            = './src/make/'
+#MAKE_DIR            = './src/make/'
 ARCHIVE_DIR         = './src/archive/'
 BUILD_DIR           = './build/'
 BUILDTEMP_DIR       = './build.temp/'
 SOURCE_DIR          = './build/source/'
-SOURCE_SRC_DIR      = './build/source/src/'
 DEPENDENCIES_DIR    = './build/dependencies/'
 TEMP_DIR            = './build/temp/'
 OUTPUT_DIR          = './build/output/'
@@ -1071,6 +1070,39 @@ def getVisualStudioName():
 def defaultClean(config, aol):
     rmdir(BUILD_DIR, BUILDTEMP_DIR)
 
+
+####################################################################################################
+# Deploy
+####################################################################################################
+
+def defaultDeploy(config, aol):
+
+    groupId = config["groupId"]
+    artifactId = config["artifactId"]
+    version = multipleReplace(config["version"], config["properties"])
+
+    reposArtifactId = artifactId.replace('-', '/')
+    reposArtifactId = reposArtifactId.replace('.', '-')
+
+    mavenGroupId = groupId + '.' + reposArtifactId
+    mavenArtifactId = artifactId + '-' + str(aol)
+
+    filename = ARTIFACT_DIR + mavenArtifactId + '.' + PACKAGING
+
+    if debug(config):
+        print('main: deploy')
+        print('    groupId = ' + groupId)
+        print('    artifactId = ' + artifactId)
+        print('    mavenGroupId = ' + mavenGroupId)
+        print('    mavenArtifactId = ' + mavenArtifactId)
+        print('    aol = ' + str(aol))
+        print('    version = ' + version)
+        print('    filename = ' + filename)
+
+    uploadArtifact(config, mavenGroupId, mavenArtifactId, version, filename)
+
+
+
 ####################################################################################################
 # Main Routine
 ####################################################################################################
@@ -1151,13 +1183,17 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     aol = AOL(config)
 
+
     ####################################################################################################
     # Call the build processes
     ####################################################################################################
 
     if 'clean' in goals:
         print('goal = clean')
-        clean(config, aol)
+        if clean == None:
+            defaultClean(config, aol)
+        else:
+            clean(config, aol)
 
     if 'generate' in goals:
         print('goal = generate')
@@ -1177,7 +1213,10 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
 
     if 'deploy' in goals:
         print('goal = deploy')
-        deploy(config, aol)
+        if deploy == None:
+            clean = defaultDeploy(config, aol)
+        else:        
+            deploy(config, aol)
 
 
     ####################################################################################################
