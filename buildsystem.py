@@ -44,9 +44,11 @@ DEPENDENCIES_DIR    = './build/dependencies/'
 TEMP_DIR            = './build/temp/'
 OUTPUT_DIR          = './build/output/'
 ARTIFACT_DIR        = './build/artifact/'
+RUN_DIR             = './build/run/'
 
 DIST_DIR            = './build/dist/'
 DISTTEMP_DIR        = './build/dist.temp/'
+DIST_BIN_DIR        = './build/dist/bin/'
 DIST_INCLUDE_DIR    = './build/dist/include/'
 DIST_LIB_SHARED_DIR = './build/dist/lib/shared/'
 DIST_LIB_STATIC_DIR = './build/dist/lib/static/'
@@ -273,13 +275,15 @@ def runProgram(config, workingDirectory, environment, arguments):
         print('------------------------------------------------------------------------------------')
         print('subprocess:', arguments)
         print('workingDirectory = ' + workingDirectory)
-    if debug(config):
-        print('environment:', environment)
+    #if debug(config):
+    #    print('environment:', environment)
 
     p = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment, cwd=workingDirectory)
     stdout = p.stdout.read().decode('utf-8')
     stderr = p.stderr.read().decode('utf-8')
-    returncode = p.returncode
+
+    returncode = p.wait()
+    print("returncode = " + str(returncode))
 
     if verbose(config):
         print('---------[ stdout ]-----------------------------------------------------------------')
@@ -827,8 +831,8 @@ def getBuildInfo(config, environ):
     if (environ == None):
         environ = {}
 
-    environ['GIT_ORIGIN'] = subprocess.check_output("git config --get remote.origin.url", shell=True).decode('utf-8')
-    environ['GIT_COMMIT'] = subprocess.check_output("git rev-parse HEAD", shell=True).decode('utf-8')
+    environ['GIT_ORIGIN'] = subprocess.check_output("git config --get remote.origin.url", shell=True).decode('utf-8').strip()
+    environ['GIT_COMMIT'] = subprocess.check_output("git rev-parse HEAD", shell=True).decode('utf-8').strip()
     environ['GROUPID'] = config["groupId"]
     environ['ARTIFACTID'] = config["artifactId"]
     environ['VERSION'] = multipleReplace(config["version"], config["properties"])
@@ -1072,6 +1076,24 @@ def defaultClean(config, aol):
 
 
 ####################################################################################################
+# Run
+####################################################################################################
+
+def defaultRun(config, aol):
+
+    mkdir_p(RUN_DIR)
+
+    print('defaultRun')
+    for file in glob.iglob(DIST_BIN_DIR + '*'):
+        print('    Running: ' + file)
+        stdout, stderr, returncode = runProgram(config, RUN_DIR, os.environ, [file])
+
+        if (returncode != 0):
+            print("Failed: " + os.path.normpath(file) + " returned " + str(returncode))
+            sys.exit(1)
+
+
+####################################################################################################
 # Deploy
 ####################################################################################################
 
@@ -1107,7 +1129,7 @@ def defaultDeploy(config, aol):
 # Main Routine
 ####################################################################################################
 
-def main(argv, clean, generate, configure, make, distribution, deploy):
+def main(argv, clean, generate, configure, make, distribution, test, deploy):
 
     ####################################################################################################
     # Parse command line arguments
@@ -1131,7 +1153,7 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     config['level'] = args.traceLevel
 
     if len(args.goals) == 0:
-        goals = ['clean', 'generate', 'configure', 'make', 'dist', 'deploy']
+        goals = ['clean', 'generate', 'configure', 'make', 'dist', 'run', 'deploy']
     else:
         goals = args.goals
 
@@ -1210,6 +1232,13 @@ def main(argv, clean, generate, configure, make, distribution, deploy):
     if 'dist' in goals:
         print('goal = dist')
         distribution(config, aol)
+
+    if 'run' in goals:
+        print('goal = test')
+        if deploy == None:
+            clean = defaultRun(config, aol)
+        else:        
+            run(config, aol)
 
     if 'deploy' in goals:
         print('goal = deploy')
