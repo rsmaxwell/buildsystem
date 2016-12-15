@@ -35,7 +35,7 @@ VERBOSE = 2
 DEBUG = 3
 
 SRC_DIR             = './src/'
-#MAKE_DIR            = './src/make/'
+MAKE_DIR            = './src/make/'
 ARCHIVE_DIR         = './src/archive/'
 BUILD_DIR           = './build/'
 BUILDTEMP_DIR       = './build.temp/'
@@ -44,7 +44,7 @@ DEPENDENCIES_DIR    = './build/dependencies/'
 TEMP_DIR            = './build/temp/'
 OUTPUT_DIR          = './build/output/'
 ARTIFACT_DIR        = './build/artifact/'
-RUN_DIR             = './build/run/'
+TEST_DIR            = './build/test/'
 
 DIST_DIR            = './build/dist/'
 DISTTEMP_DIR        = './build/dist.temp/'
@@ -1076,21 +1076,38 @@ def defaultClean(config, aol):
 
 
 ####################################################################################################
-# Run
+# Test
 ####################################################################################################
 
-def defaultRun(config, aol):
+def defaultTest(config, aol):
+    print('defaultTest')
 
-    mkdir_p(RUN_DIR)
+    if not os.path.isdir(TEST_DIR):
+        if (debug(config)):
+            print('There is no Test directory')
+        return
 
-    print('defaultRun')
-    for file in glob.iglob(DIST_BIN_DIR + '*'):
+
+    print('Looking for Test executables in ' + TEST_DIR)
+    testExecutables = []
+    
+    if aol.operatingSystem == 'windows':
+        for filename in glob.iglob(TEST_DIR + '*.exe'):
+             testExecutables += filename  
+    else:
+        for filename in os.listdir('.'):
+            if os.path.isfile(filename) and os.access(filename, os.X_OK):
+                testExecutables += filename
+    
+
+    for file in testExecutables:
         print('    Running: ' + file)
-        stdout, stderr, returncode = runProgram(config, RUN_DIR, os.environ, [file])
+        stdout, stderr, returncode = runProgram(config, TEST_DIR, os.environ, [file])
 
         if (returncode != 0):
             print("Failed: " + os.path.normpath(file) + " returned " + str(returncode))
-            sys.exit(1)
+            sys.exit(1)  
+
 
 
 ####################################################################################################
@@ -1129,7 +1146,7 @@ def defaultDeploy(config, aol):
 # Main Routine
 ####################################################################################################
 
-def main(argv, clean, generate, configure, make, distribution, test, deploy):
+def main(clean=None, generate=None, configure=None, make=None, distribution=None, test=None, deploy=None):
 
     ####################################################################################################
     # Parse command line arguments
@@ -1153,7 +1170,7 @@ def main(argv, clean, generate, configure, make, distribution, test, deploy):
     config['level'] = args.traceLevel
 
     if len(args.goals) == 0:
-        goals = ['clean', 'generate', 'configure', 'make', 'dist', 'run', 'deploy']
+        goals = ['clean', 'generate', 'configure', 'make', 'dist', 'test', 'deploy']
     else:
         goals = args.goals
 
@@ -1233,12 +1250,12 @@ def main(argv, clean, generate, configure, make, distribution, test, deploy):
         print('goal = dist')
         distribution(config, aol)
 
-    if 'run' in goals:
+    if 'test' in goals:
         print('goal = test')
         if deploy == None:
-            clean = defaultRun(config, aol)
+            clean = defaultTest(config, aol)
         else:        
-            run(config, aol)
+            test(config, aol)
 
     if 'deploy' in goals:
         print('goal = deploy')
