@@ -1074,6 +1074,15 @@ def getVisualStudioName():
 def defaultClean(config, aol):
     rmdir(BUILD_DIR, BUILDTEMP_DIR)
 
+#
+
+####################################################################################################
+# Configure
+####################################################################################################
+
+def defaultConfigure(config, aol):
+    pass
+
 
 ####################################################################################################
 # Test
@@ -1087,8 +1096,8 @@ def defaultTest(config, aol):
             print('There is no Test directory')
         return
 
-
-    print('Looking for Test executables in ' + TEST_DIR)
+    if (verbose(config)):
+        print('Looking for Test executables in ' + TEST_DIR)
     testExecutables = []
     
     if aol.operatingSystem == 'windows':
@@ -1099,7 +1108,9 @@ def defaultTest(config, aol):
             if os.path.isfile(filename) and os.access(filename, os.X_OK):
                 testExecutables += filename
     
-
+    if (verbose(config)):
+        print('Running ' + str(len(testExecutables)) + ' Tests')
+        
     for file in testExecutables:
         print('    Running: ' + file)
         stdout, stderr, returncode = runProgram(config, TEST_DIR, os.environ, [file])
@@ -1240,7 +1251,10 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
 
     if 'configure' in goals:
         print('goal = configure')
-        configure(config, aol)
+        if configure == None:
+            defaultConfigure(config, aol)
+        else:
+            configure(config, aol)
 
     if 'make' in goals:
         print('goal = make')
