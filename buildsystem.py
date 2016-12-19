@@ -1132,19 +1132,22 @@ def defaultConfigure(config, aol):
 def defaultCompile(config, aol):
     print('defaultCompile')
 
-    buildsystem.mkdir_p(buildsystem.BUILD_OUTPUT_MAIN_DIR)
-    buildsystem.mkdir_p(buildsystem.BUILD_OUTPUT_TEST_DIR)
+    mkdir_p(BUILD_OUTPUT_MAIN_DIR)
 
     if aol.operatingSystem == 'windows':
-        makefile = os.path.relpath(buildsystem.SRC_MAIN_MAKE_DIR, buildsystem.BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
+        makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
         env = os.environ
         env['BUILD_TYPE'] = 'normal'
-        env['SOURCE'] = os.path.relpath(BUILD_SOURCE_MAIN_SRC_DIR, buildsystem.BUILD_OUTPUT_MAIN_DIR)
+        env['SOURCE'] = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
         env['OUTPUT'] = '.'
-        buildsystem.runProgram(config, buildsystem.BUILD_OUTPUT_MAIN_DIR, env, ['make', '-f', makefile, 'clean', 'all'])
+        stdout, stderr, returncode = runProgram(config, BUILD_OUTPUT_MAIN_DIR, env, ['make', '-f', makefile, 'clean', 'all'])
 
     else:     # Linux or MinGW or CygWin
-        buildsystem.runProgram(config, buildsystem.BUILD_SOURCE_MAIN_DIR, os.environ, ['make', 'clean', 'all'])
+        stdout, stderr, returncode = runProgram(config, BUILD_SOURCE_MAIN_DIR, os.environ, ['make', 'clean', 'all'])
+
+    if (returncode != 0):
+        print("Failed: compile failed: " + str(returncode))
+        sys.exit(1)
 
 
 ####################################################################################################
@@ -1167,7 +1170,6 @@ def defaultTestCompile(config, aol):
             print('There is no Test Source directory')
         return
 
-    mkdir_p(BUILD_OUTPUT_MAIN_DIR)
     mkdir_p(BUILD_OUTPUT_TEST_DIR)
 
     if aol.operatingSystem == 'windows':
@@ -1187,7 +1189,7 @@ def defaultTestCompile(config, aol):
         stdout, stderr, returncode = runProgram(config, BUILD_SOURCE_MAIN_DIR, os.environ, ['make', 'clean', 'all'])
 
     if (returncode != 0):
-        print("Failed: Test compiles failed: " + str(returncode))
+        print("Failed: Test compile failed: " + str(returncode))
         sys.exit(1)
 
 
@@ -1264,7 +1266,7 @@ def defaultDeploy(config, aol):
 # Main Routine
 ####################################################################################################
 
-def main(clean=None, generate=None, configure=None, make=None, distribution=None, testCompile=None, test=None, deploy=None):
+def main(clean=None, generate=None, configure=None, compile=None, distribution=None, testCompile=None, test=None, deploy=None):
 
     ####################################################################################################
     # Parse command line arguments
@@ -1367,8 +1369,8 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
             configure(config, aol)
 
     if 'compile' in goals:
-        print('goal = make')
-        if make == None:
+        print('goal = compile')
+        if compile == None:
             defaultCompile(config, aol)
         else:
             compile(config, aol)
