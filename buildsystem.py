@@ -1072,16 +1072,12 @@ def getVisualStudioName():
         sys.exit(1)
 
 
-
-
 ####################################################################################################
 # Clean
 ####################################################################################################
 
 def defaultClean(config, aol):
     rmdir(BUILD_DIR, BUILDTEMP_DIR)
-
-
 
 
 ####################################################################################################
@@ -1101,13 +1097,13 @@ def defaultGenerate(config, aol):
         artifactId = dependency.get('artifactId')
         version = dependency.get('version')
         packaging = dependency.get('packaging', 'zip')
-    
+
         reposArtifactId = artifactId.replace('-', '/')
         reposArtifactId = reposArtifactId.replace('.', '-')
-    
+
         mavenGroupId = groupId + '.' + reposArtifactId
         mavenArtifactId = artifactId + '-' + str(aol)
-    
+
         if info(config):
             print('dependency:')
             print('    groupId = ' + groupId)
@@ -1116,7 +1112,7 @@ def defaultGenerate(config, aol):
             print('    mavenArtifactId = ' + mavenArtifactId)
             print('    version = ' + version)
             print('    aol = ' + str(aol))
-    
+
         downloadArtifact(config, mavenGroupId, mavenArtifactId, version)
         expandArtifact(config, mavenGroupId, mavenArtifactId, version, BUILD_DEPENDENCIES_DIR)
 
@@ -1133,8 +1129,8 @@ def defaultConfigure(config, aol):
 # Make
 ####################################################################################################
 
-def defaultMake(config, aol):
-    print('defaultMake')
+def defaultCompile(config, aol):
+    print('defaultCompile')
 
     buildsystem.mkdir_p(buildsystem.BUILD_OUTPUT_MAIN_DIR)
     buildsystem.mkdir_p(buildsystem.BUILD_OUTPUT_TEST_DIR)
@@ -1192,7 +1188,7 @@ def defaultTestCompile(config, aol):
 
     if (returncode != 0):
         print("Failed: Test compiles failed: " + str(returncode))
-        sys.exit(1) 
+        sys.exit(1)
 
 
 ####################################################################################################
@@ -1211,25 +1207,25 @@ def defaultTest(config, aol):
     if (verbose(config)):
         print('Looking for Test executables in ' + BUILD_OUTPUT_TEST_DIR)
     testExecutables = []
-    
+
     if aol.operatingSystem == 'windows':
         for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '*.exe'):
-            testExecutables.append(filename) 
+            testExecutables.append(filename)
     else:
         for filename in os.listdir('.'):
             if os.path.isfile(filename) and os.access(filename, os.X_OK):
                 testExecutables.append(filename)
-    
+
     if (verbose(config)):
         print('Running ' + str(len(testExecutables)) + ' Tests')
-        
+
     for file in testExecutables:
         print('    Running: ' + file)
         stdout, stderr, returncode = runProgram(config, BUILD_OUTPUT_TEST_DIR, os.environ, [file])
 
         if (returncode != 0):
             print("Failed: " + os.path.normpath(file) + " returned " + str(returncode))
-            sys.exit(1)  
+            sys.exit(1)
 
 
 
@@ -1264,7 +1260,6 @@ def defaultDeploy(config, aol):
     uploadArtifact(config, mavenGroupId, mavenArtifactId, version, filename)
 
 
-
 ####################################################################################################
 # Main Routine
 ####################################################################################################
@@ -1293,7 +1288,7 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
     config['level'] = args.traceLevel
 
     if len(args.goals) == 0:
-        goals = ['clean', 'generate', 'configure', 'make', 'distribution', 'testCompile', 'test', 'deploy']
+        goals = ['clean', 'generate', 'configure', 'compile', 'distribution', 'testCompile', 'test', 'deploy']
     else:
         goals = args.goals
 
@@ -1371,12 +1366,12 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
         else:
             configure(config, aol)
 
-    if 'make' in goals:
+    if 'compile' in goals:
         print('goal = make')
         if make == None:
-            defaultMake(config, aol)
+            defaultCompile(config, aol)
         else:
-            make(config, aol)
+            compile(config, aol)
 
     if 'distribution' in goals:
         print('goal = distribution')
@@ -1389,21 +1384,21 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
         print('goal = test-compile')
         if testCompile == None:
             clean = defaultTestCompile(config, aol)
-        else:        
+        else:
             testCompile(config, aol)
 
     if 'test' in goals:
         print('goal = test')
         if test == None:
             clean = defaultTest(config, aol)
-        else:        
+        else:
             test(config, aol)
 
     if 'deploy' in goals:
         print('goal = deploy')
         if deploy == None:
             clean = defaultDeploy(config, aol)
-        else:        
+        else:
             deploy(config, aol)
 
 
