@@ -34,24 +34,31 @@ INFO = 1
 VERBOSE = 2
 DEBUG = 3
 
-SRC_DIR             = './src/'
-MAKE_DIR            = './src/make/'
-ARCHIVE_DIR         = './src/archive/'
-BUILD_DIR           = './build/'
-BUILDTEMP_DIR       = './build.temp/'
-SOURCE_DIR          = './build/source/'
-DEPENDENCIES_DIR    = './build/dependencies/'
-TEMP_DIR            = './build/temp/'
-OUTPUT_DIR          = './build/output/'
-ARTIFACT_DIR        = './build/artifact/'
-TEST_DIR            = './build/test/'
+SRC_MAIN_DIR             = './src/main/'
+SRC_MAIN_C_DIR           = './src/main/c/'
+SRC_MAIN_MAKE_DIR        = './src/main/make/'
+SRC_MAIN_ARCHIVE_DIR     = './src/main/archive/'
 
-DIST_DIR            = './build/dist/'
-DISTTEMP_DIR        = './build/dist.temp/'
-DIST_BIN_DIR        = './build/dist/bin/'
-DIST_INCLUDE_DIR    = './build/dist/include/'
-DIST_LIB_SHARED_DIR = './build/dist/lib/shared/'
-DIST_LIB_STATIC_DIR = './build/dist/lib/static/'
+SRC_TEST_DIR             = './src/test/'
+SRC_TEST_C_DIR           = './src/test/c/'
+SRC_TEST_MAKE_DIR        = './src/test/make/'
+
+BUILD_DIR                = './build/'
+BUILDTEMP_DIR            = './build.temp/'
+BUILD_SOURCE_MAIN_DIR    = './build/source/main/'
+BUILD_SOURCE_TEST_DIR    = './build/source/test/'
+BUILD_DEPENDENCIES_DIR   = './build/dependencies/'
+BUILD_TEMP_DIR           = './build/temp/'
+BUILD_OUTPUT_MAIN_DIR    = './build/output/main/'
+BUILD_OUTPUT_TEST_DIR    = './build/output/test/'
+BUILD_ARTIFACT_DIR       = './build/artifact/'
+
+DIST_DIR                 = './build/dist/'
+DISTTEMP_DIR             = './build/dist.temp/'
+DIST_BIN_DIR             = './build/dist/bin/'
+DIST_INCLUDE_DIR         = './build/dist/include/'
+DIST_LIB_SHARED_DIR      = './build/dist/lib/shared/'
+DIST_LIB_STATIC_DIR      = './build/dist/lib/static/'
 
 PACKAGING = 'zip'
 
@@ -1074,7 +1081,45 @@ def getVisualStudioName():
 def defaultClean(config, aol):
     rmdir(BUILD_DIR, BUILDTEMP_DIR)
 
-#
+
+
+
+####################################################################################################
+# Clean
+####################################################################################################
+
+def defaultGenerate(config, aol):
+
+    try:
+        dependencies = config['dependencies']
+    except KeyError:
+        return
+
+
+    for dependency in config['dependencies']:
+        groupId = dependency.get('groupId')
+        artifactId = dependency.get('artifactId')
+        version = dependency.get('version')
+        packaging = dependency.get('packaging', 'zip')
+    
+        reposArtifactId = artifactId.replace('-', '/')
+        reposArtifactId = reposArtifactId.replace('.', '-')
+    
+        mavenGroupId = groupId + '.' + reposArtifactId
+        mavenArtifactId = artifactId + '-' + str(aol)
+    
+        if info(config):
+            print('dependency:')
+            print('    groupId = ' + groupId)
+            print('    artifactId = ' + artifactId)
+            print('    mavenGroupId = ' + mavenGroupId)
+            print('    mavenArtifactId = ' + mavenArtifactId)
+            print('    version = ' + version)
+            print('    aol = ' + str(aol))
+    
+        downloadArtifact(config, mavenGroupId, mavenArtifactId, version)
+        expandArtifact(config, mavenGroupId, mavenArtifactId, version, BUILD_DEPENDENCIES_DIR)
+
 
 ####################################################################################################
 # Configure
@@ -1085,35 +1130,102 @@ def defaultConfigure(config, aol):
 
 
 ####################################################################################################
+# Make
+####################################################################################################
+
+def defaultMake(config, aol):
+    print('defaultMake')
+
+    buildsystem.mkdir_p(buildsystem.BUILD_OUTPUT_MAIN_DIR)
+    buildsystem.mkdir_p(buildsystem.BUILD_OUTPUT_TEST_DIR)
+
+    if aol.operatingSystem == 'windows':
+        makefile = os.path.relpath(buildsystem.SRC_MAIN_MAKE_DIR, buildsystem.BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
+        env = os.environ
+        env['BUILD_TYPE'] = 'normal'
+        env['SOURCE'] = os.path.relpath(BUILD_SOURCE_MAIN_SRC_DIR, buildsystem.BUILD_OUTPUT_MAIN_DIR)
+        env['OUTPUT'] = '.'
+        buildsystem.runProgram(config, buildsystem.BUILD_OUTPUT_MAIN_DIR, env, ['make', '-f', makefile, 'clean', 'all'])
+
+    else:     # Linux or MinGW or CygWin
+        buildsystem.runProgram(config, buildsystem.BUILD_SOURCE_MAIN_DIR, os.environ, ['make', 'clean', 'all'])
+
+
+####################################################################################################
+# Distribution
+####################################################################################################
+
+def defaultDistribution(config, aol):
+    pass
+
+
+####################################################################################################
+# Test Compile
+####################################################################################################
+
+def defaultTestCompile(config, aol):
+    print('defaultTestCompile')
+
+    if not os.path.exists(SRC_TEST_DIR):
+        if (verbose(config)):
+            print('There is no Test Source directory')
+        return
+
+    mkdir_p(BUILD_OUTPUT_MAIN_DIR)
+    mkdir_p(BUILD_OUTPUT_TEST_DIR)
+
+    if aol.operatingSystem == 'windows':
+        makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
+        source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
+
+        print('makefile = ' + makefile)
+        print('SOURCE = ' + source)
+
+        env = os.environ
+        env['BUILD_TYPE'] = 'normal'
+        env['SOURCE'] = source
+        env['OUTPUT'] = '.'
+        stdout, stderr, returncode = runProgram(config, BUILD_OUTPUT_TEST_DIR, env, ['make', '-f', makefile, 'clean', 'all'])
+
+    else:     # Linux or MinGW or CygWin
+        stdout, stderr, returncode = runProgram(config, BUILD_SOURCE_MAIN_DIR, os.environ, ['make', 'clean', 'all'])
+
+    if (returncode != 0):
+        print("Failed: Test compiles failed: " + str(returncode))
+        sys.exit(1) 
+
+
+####################################################################################################
 # Test
 ####################################################################################################
 
 def defaultTest(config, aol):
     print('defaultTest')
 
-    if not os.path.isdir(TEST_DIR):
-        if (debug(config)):
-            print('There is no Test directory')
+    if not os.path.exists(BUILD_OUTPUT_TEST_DIR):
+        if (verbose(config)):
+            print('There is no Test Output directory')
         return
 
+
     if (verbose(config)):
-        print('Looking for Test executables in ' + TEST_DIR)
+        print('Looking for Test executables in ' + BUILD_OUTPUT_TEST_DIR)
     testExecutables = []
     
     if aol.operatingSystem == 'windows':
-        for filename in glob.iglob(TEST_DIR + '*.exe'):
-             testExecutables += filename  
+        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '*.exe'):
+            testExecutables.append(filename) 
     else:
         for filename in os.listdir('.'):
             if os.path.isfile(filename) and os.access(filename, os.X_OK):
-                testExecutables += filename
+                testExecutables.append(filename)
     
     if (verbose(config)):
         print('Running ' + str(len(testExecutables)) + ' Tests')
         
     for file in testExecutables:
         print('    Running: ' + file)
-        stdout, stderr, returncode = runProgram(config, TEST_DIR, os.environ, [file])
+        stdout, stderr, returncode = runProgram(config, BUILD_OUTPUT_TEST_DIR, os.environ, [file])
 
         if (returncode != 0):
             print("Failed: " + os.path.normpath(file) + " returned " + str(returncode))
@@ -1137,7 +1249,7 @@ def defaultDeploy(config, aol):
     mavenGroupId = groupId + '.' + reposArtifactId
     mavenArtifactId = artifactId + '-' + str(aol)
 
-    filename = ARTIFACT_DIR + mavenArtifactId + '.' + PACKAGING
+    filename = BUILD_ARTIFACT_DIR + mavenArtifactId + '.' + PACKAGING
 
     if debug(config):
         print('main: deploy')
@@ -1157,7 +1269,7 @@ def defaultDeploy(config, aol):
 # Main Routine
 ####################################################################################################
 
-def main(clean=None, generate=None, configure=None, make=None, distribution=None, test=None, deploy=None):
+def main(clean=None, generate=None, configure=None, make=None, distribution=None, testCompile=None, test=None, deploy=None):
 
     ####################################################################################################
     # Parse command line arguments
@@ -1181,7 +1293,7 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
     config['level'] = args.traceLevel
 
     if len(args.goals) == 0:
-        goals = ['clean', 'generate', 'configure', 'make', 'dist', 'test', 'deploy']
+        goals = ['clean', 'generate', 'configure', 'make', 'distribution', 'testCompile', 'test', 'deploy']
     else:
         goals = args.goals
 
@@ -1247,7 +1359,10 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
 
     if 'generate' in goals:
         print('goal = generate')
-        generate(config, aol)
+        if generate == None:
+            defaultGenerate(config, aol)
+        else:
+            generate(config, aol)
 
     if 'configure' in goals:
         print('goal = configure')
@@ -1258,15 +1373,28 @@ def main(clean=None, generate=None, configure=None, make=None, distribution=None
 
     if 'make' in goals:
         print('goal = make')
-        make(config, aol)
+        if make == None:
+            defaultMake(config, aol)
+        else:
+            make(config, aol)
 
-    if 'dist' in goals:
-        print('goal = dist')
-        distribution(config, aol)
+    if 'distribution' in goals:
+        print('goal = distribution')
+        if distribution == None:
+            defaultDistribution(config, aol)
+        else:
+            distribution(config, aol)
+
+    if 'testCompile' in goals:
+        print('goal = test-compile')
+        if testCompile == None:
+            clean = defaultTestCompile(config, aol)
+        else:        
+            testCompile(config, aol)
 
     if 'test' in goals:
         print('goal = test')
-        if deploy == None:
+        if test == None:
             clean = defaultTest(config, aol)
         else:        
             test(config, aol)
