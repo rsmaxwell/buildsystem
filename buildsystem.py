@@ -117,19 +117,30 @@ class AOL:
                 print('The Compiler gcc is not available')
                 sys.exit(1)
 
-            stdout, stderr, returncode = runProgram(config, os.getcwd(), os.environ, [gcc, '-v'])
+            p = subprocess.Popen([gcc, '-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+            returncode = p.wait()
 
-            lines = stderr.splitlines()
-            for line in lines:
-                if line.startswith('Target:'):
-                    words = line.split()
-                    word = words[1]
-                    break
-
-            string = word.split('-')
-            self.architecture = string[0]
-            self.operatingSystem = string[1]
-            self.linker = string[2]
+            if returncode == 0:
+                lines = stderr.splitlines()
+                for line in lines:
+                    if line.startswith('Target:'):
+                        words = line.split()
+                        word = words[1]
+                        break
+    
+                string = word.split('-')
+                self.architecture = string[0]
+                self.operatingSystem = string[1]
+                self.linker = string[2]
+            else:
+                print('Error: Cannot find the version of the compiler')
+                print('---------[ stdout ]-----------------------------------------------------------------')
+                print(stdout)
+                print('---------[ stderr ]-----------------------------------------------------------------')
+                print(stderr)
+                print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+                sys.exit(1)
 
 
     def __str__(self):
@@ -271,38 +282,28 @@ def inplace_change(filename, old_string, new_string):
         s = s.replace(old_string, new_string)
         f.write(s)
 
-
+#
 ####################################################################################################
-# Run a program and wait for the result
+# Check a sub process completes ok          
 ####################################################################################################
 
-def runProgram(config, workingDirectory, environment, arguments):
+def checkProcessCompletesOk(process, message, expectedReturnCodes=[0]):
+    stdout, stderr = process.communicate()
+    returncode = process.wait()
 
-    if verbose(config):
-        print('------------------------------------------------------------------------------------')
-        print('subprocess:', arguments)
-        print('workingDirectory = ' + workingDirectory)
-    #if debug(config):
-    #    print('environment:', environment)
+    ok = False
+    for expected in expectedReturnCodes:
+        if returncode == expected:
+            ok = True
 
-    p = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment, cwd=workingDirectory)
-    stdout = p.stdout.read().decode('utf-8')
-    stderr = p.stderr.read().decode('utf-8')
-
-    returncode = p.wait()
-    print("returncode = " + str(returncode))
-
-    if verbose(config):
+    if (not ok):
+        print(message)
         print('---------[ stdout ]-----------------------------------------------------------------')
-        print(stdout)
+        print(stdout.decode('utf-8'))
         print('---------[ stderr ]-----------------------------------------------------------------')
-        print(stderr)
-        print('---------[ exitCode ]---------------------------------------------------------------')
-        print(returncode)
-        print('------------------------------------------------------------------------------------')
-
-    return stdout, stderr, returncode
-
+        print(stderr.decode('utf-8'))
+        print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+        sys.exit(1)
 
 
 ####################################################################################################
@@ -1140,14 +1141,13 @@ def defaultCompile(config, aol):
         env['BUILD_TYPE'] = 'normal'
         env['SOURCE'] = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
         env['OUTPUT'] = '.'
-        stdout, stderr, returncode = runProgram(config, BUILD_OUTPUT_MAIN_DIR, env, ['make', '-f', makefile, 'clean', 'all'])
+        p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
+        checkProcessCompletesOk(p, 'Error: Compile failed')
+
 
     else:     # Linux or MinGW or CygWin
-        stdout, stderr, returncode = runProgram(config, BUILD_SOURCE_MAIN_DIR, os.environ, ['make', 'clean', 'all'])
-
-    if (returncode != 0):
-        print("Failed: compile failed: " + str(returncode))
-        sys.exit(1)
+        p = subprocess.Popen(['make', 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_SOURCE_MAIN_DIR)
+        checkProcessCompletesOk(p, 'Error: Compile failed')
 
 
 ####################################################################################################
@@ -1176,21 +1176,41 @@ def defaultTestCompile(config, aol):
         makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
 
-        print('makefile = ' + makefile)
-        print('SOURCE = ' + source)
-
         env = os.environ
         env['BUILD_TYPE'] = 'normal'
         env['SOURCE'] = source
         env['OUTPUT'] = '.'
-        stdout, stderr, returncode = runProgram(config, BUILD_OUTPUT_TEST_DIR, env, ['make', '-f', makefile, 'clean', 'all'])
+        p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+       
+        if (returncode != 0) or (verbose(config)):
+            print('Error: Test Compile failed')
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+        if (returncode != 0):
+            sys.exit(1)
+
 
     else:     # Linux or MinGW or CygWin
-        stdout, stderr, returncode = runProgram(config, BUILD_SOURCE_MAIN_DIR, os.environ, ['make', 'clean', 'all'])
+        p = subprocess.Popen(['make', 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_SOURCE_MAIN_DIR)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+       
+        if (returncode != 0) or (verbose(config)):
+            print('Error: Test Compile failed')
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
-    if (returncode != 0):
-        print("Failed: Test compile failed: " + str(returncode))
-        sys.exit(1)
+        if (returncode != 0):
+            sys.exit(1)
 
 
 ####################################################################################################
@@ -1205,30 +1225,52 @@ def defaultTest(config, aol):
             print('There is no Test Output directory')
         return
 
-
-    if (verbose(config)):
-        print('Looking for Test executables in ' + BUILD_OUTPUT_TEST_DIR)
     testExecutables = []
-
     if aol.operatingSystem == 'windows':
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '*.exe'):
+        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '/**/*.exe'):
             testExecutables.append(filename)
+
+        source = BUILD_OUTPUT_MAIN_DIR + '*/*/*.dll'
+        for file in glob.iglob(source):
+            fileName = os.path.basename(file)
+            parentDir = os.path.dirname(file)
+            parentName = os.path.basename(parentDir)
+            parentParentDir = os.path.dirname(parentDir)
+            parentParentName = os.path.basename(parentParentDir)
+            destination = str(parentParentDir) + '/' + filename
+            destination = BUILD_OUTPUT_TEST_DIR + parentParentName + '/' + fileName
+            shutil.copy2(file, destination)
+
     else:
         for filename in os.listdir('.'):
             if os.path.isfile(filename) and os.access(filename, os.X_OK):
                 testExecutables.append(filename)
+
+    if len(testExecutables) == 0:
+        print('Error: No tests were found')
+        sys.exit(1)
 
     if (verbose(config)):
         print('Running ' + str(len(testExecutables)) + ' Tests')
 
     for file in testExecutables:
         print('    Running: ' + file)
-        stdout, stderr, returncode = runProgram(config, BUILD_OUTPUT_TEST_DIR, os.environ, [file])
+        p = subprocess.Popen([file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_OUTPUT_TEST_DIR)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+       
+        if (returncode != 0):
+            print('Error: test ' + file + ' failed')
+
+        if (returncode != 0) or (verbose(config)):
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
         if (returncode != 0):
-            print("Failed: " + os.path.normpath(file) + " returned " + str(returncode))
             sys.exit(1)
-
 
 
 ####################################################################################################
