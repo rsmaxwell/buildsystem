@@ -45,6 +45,7 @@ SRC_TEST_MAKE_DIR        = './src/test/make/'
 
 BUILD_DIR                = './build/'
 BUILDTEMP_DIR            = './build.temp/'
+BUILD_SOURCE_DIR         = './build/source/'
 BUILD_SOURCE_MAIN_DIR    = './build/source/main/'
 BUILD_SOURCE_TEST_DIR    = './build/source/test/'
 BUILD_DEPENDENCIES_DIR   = './build/dependencies/'
@@ -122,7 +123,7 @@ class AOL:
             returncode = p.wait()
 
             if returncode == 0:
-                lines = stderr.splitlines()
+                lines = stderr.decode('utf-8').splitlines()
                 for line in lines:
                     if line.startswith('Target:'):
                         words = line.split()
@@ -287,22 +288,23 @@ def inplace_change(filename, old_string, new_string):
 # Check a sub process completes ok          
 ####################################################################################################
 
-def checkProcessCompletesOk(process, message, expectedReturnCodes=[0]):
+def checkProcessCompletesOk(config, process, message, expectedReturnCodes=[0]):
     stdout, stderr = process.communicate()
     returncode = process.wait()
 
-    ok = False
-    for expected in expectedReturnCodes:
-        if returncode == expected:
-            ok = True
+    ok = True if returncode in expectedReturnCodes else False
 
     if (not ok):
         print(message)
+
+    if (not ok) or (verbose(config)):
         print('---------[ stdout ]-----------------------------------------------------------------')
         print(stdout.decode('utf-8'))
         print('---------[ stderr ]-----------------------------------------------------------------')
         print(stderr.decode('utf-8'))
         print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+    if (not ok):
         sys.exit(1)
 
 
