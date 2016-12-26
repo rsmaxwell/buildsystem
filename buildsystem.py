@@ -6,6 +6,7 @@ import subprocess
 import sys
 import shutil
 import gzip
+import stat
 import tarfile
 import re
 import argparse
@@ -1186,8 +1187,10 @@ def defaultTestCompile(config, aol):
         stdout, stderr = p.communicate()
         returncode = p.wait()
        
-        if (returncode != 0) or (verbose(config)):
+        if (returncode != 0):
             print('Error: Test Compile failed')
+
+        if (returncode != 0) or (verbose(config)):
             print('---------[ stdout ]-----------------------------------------------------------------')
             print(stdout.decode('utf-8'))
             print('---------[ stderr ]-----------------------------------------------------------------')
@@ -1199,12 +1202,21 @@ def defaultTestCompile(config, aol):
 
 
     else:     # Linux or MinGW or CygWin
-        p = subprocess.Popen(['make', 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_SOURCE_MAIN_DIR)
+        makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
+        source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
+
+        env = os.environ
+        env['BUILD_TYPE'] = 'normal'
+        env['SOURCE'] = source
+        env['OUTPUT'] = '.'
+        p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
        
-        if (returncode != 0) or (verbose(config)):
+        if (returncode != 0):
             print('Error: Test Compile failed')
+
+        if (returncode != 0) or (verbose(config)):
             print('---------[ stdout ]-----------------------------------------------------------------')
             print(stdout.decode('utf-8'))
             print('---------[ stderr ]-----------------------------------------------------------------')
@@ -1244,12 +1256,16 @@ def defaultTest(config, aol):
             shutil.copy2(file, destination)
 
     else:
-        for filename in os.listdir('.'):
-            if os.path.isfile(filename) and os.access(filename, os.X_OK):
-                testExecutables.append(filename)
+        executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
+        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '**/*'):
+            if os.path.isfile(filename):
+                st = os.stat(filename)
+                mode = st.st_mode
+                if mode & executable:
+                    testExecutables.append(filename)
 
     if len(testExecutables) == 0:
-        print('Error: No tests were found')
+        print('Error: No tests were found under: ' + BUILD_OUTPUT_TEST_DIR)
         sys.exit(1)
 
     if (verbose(config)):
