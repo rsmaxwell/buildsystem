@@ -1256,7 +1256,8 @@ def defaultTest(config, aol):
         print('Running ' + str(len(testExecutables)) + ' Tests')
 
     for file in testExecutables:
-        print('    Running: ' + file)
+        if (verbose(config)):
+            print('    Running: ' + file)
         p = subprocess.Popen([file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
