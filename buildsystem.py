@@ -1166,7 +1166,6 @@ def defaultDistribution(config, aol):
 ####################################################################################################
 
 def defaultTestCompile(config, aol):
-    print('defaultTestCompile')
 
     if not os.path.exists(SRC_TEST_DIR):
         if (verbose(config)):
