@@ -1374,11 +1374,6 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     config['servers'] = servers
 
     properties = config['properties']
-    if debug(config):
-        print('Number of config properties = ' + str(len(properties)))
-        for key in properties:
-            print('    ' + key + ' = ' + properties[key])
-
     for property in args.properties:
         words = property.split('=')
         if len(words) >= 1:
