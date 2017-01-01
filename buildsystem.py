@@ -59,6 +59,7 @@ DIST_DIR                 = './build/dist/'
 DISTTEMP_DIR             = './build/dist.temp/'
 DIST_BIN_DIR             = './build/dist/bin/'
 DIST_INCLUDE_DIR         = './build/dist/include/'
+DIST_LIB_DIR             = './build/dist/lib/'
 DIST_LIB_SHARED_DIR      = './build/dist/lib/shared/'
 DIST_LIB_STATIC_DIR      = './build/dist/lib/static/'
 
@@ -1271,9 +1272,17 @@ def defaultTest(config, aol):
         print('Running ' + str(len(testExecutables)) + ' Tests')
 
     for file in testExecutables:
+
         if (verbose(config)):
             print('    Running: ' + file)
-        p = subprocess.Popen([file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_OUTPUT_TEST_DIR)
+            print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
+
+        args = [os.path.abspath(file)]
+
+        if verbose(config):
+            print('Args = ' + str(args))
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
        
