@@ -35,33 +35,36 @@ INFO = 1
 VERBOSE = 2
 DEBUG = 3
 
-SRC_MAIN_DIR             = './src/main/'
-SRC_MAIN_C_DIR           = './src/main/c/'
-SRC_MAIN_MAKE_DIR        = './src/main/make/'
-SRC_MAIN_ARCHIVE_DIR     = './src/main/archive/'
-
-SRC_TEST_DIR             = './src/test/'
-SRC_TEST_C_DIR           = './src/test/c/'
-SRC_TEST_MAKE_DIR        = './src/test/make/'
-
-BUILD_DIR                = './build/'
-BUILDTEMP_DIR            = './build.temp/'
-BUILD_SOURCE_DIR         = './build/source/'
-BUILD_SOURCE_MAIN_DIR    = './build/source/main/'
-BUILD_SOURCE_TEST_DIR    = './build/source/test/'
-BUILD_DEPENDENCIES_DIR   = './build/dependencies/'
-BUILD_TEMP_DIR           = './build/temp/'
-BUILD_OUTPUT_MAIN_DIR    = './build/output/main/'
-BUILD_OUTPUT_TEST_DIR    = './build/output/test/'
-BUILD_ARTIFACT_DIR       = './build/artifact/'
-
-DIST_DIR                 = './build/dist/'
-DISTTEMP_DIR             = './build/dist.temp/'
-DIST_BIN_DIR             = './build/dist/bin/'
-DIST_INCLUDE_DIR         = './build/dist/include/'
-DIST_LIB_DIR             = './build/dist/lib/'
-DIST_LIB_SHARED_DIR      = './build/dist/lib/shared/'
-DIST_LIB_STATIC_DIR      = './build/dist/lib/static/'
+SRC_MAIN_DIR                            = './src/main/'
+SRC_MAIN_C_DIR                          = './src/main/c/'
+SRC_MAIN_MAKE_DIR                       = './src/main/make/'
+SRC_MAIN_ARCHIVE_DIR                    = './src/main/archive/'
+                                       
+SRC_TEST_DIR                            = './src/test/'
+SRC_TEST_C_DIR                          = './src/test/c/'
+SRC_TEST_MAKE_DIR                       = './src/test/make/'
+                                       
+BUILD_DIR                               = './build/'
+BUILDTEMP_DIR                           = './build.temp/'
+BUILD_SOURCE_DIR                        = './build/source/'
+BUILD_SOURCE_MAIN_DIR                   = './build/source/main/'
+BUILD_SOURCE_TEST_DIR                   = './build/source/test/'
+BUILD_DEPENDENCIES_DIR                  = './build/dependencies/'
+BUILD_TEMP_DIR                          = './build/temp/'
+BUILD_OUTPUT_MAIN_DIR                   = './build/output/main/'
+BUILD_OUTPUT_MAIN_INFO_DIR              = './build/output/main/info/'
+BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR    = './build/output/main/info/git.status/'
+BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR = './build/output/main/info/git.diff-index/'
+BUILD_OUTPUT_TEST_DIR                   = './build/output/test/'
+BUILD_ARTIFACT_DIR                      = './build/artifact/'
+                                       
+DIST_DIR                                = './build/dist/'
+DISTTEMP_DIR                            = './build/dist.temp/'
+DIST_BIN_DIR                            = './build/dist/bin/'
+DIST_INCLUDE_DIR                        = './build/dist/include/'
+DIST_LIB_DIR                            = './build/dist/lib/'
+DIST_LIB_SHARED_DIR                     = './build/dist/lib/shared/'
+DIST_LIB_STATIC_DIR                     = './build/dist/lib/static/'
 
 PACKAGING = 'zip'
 
@@ -838,18 +841,95 @@ def copySnapshot(config, localpath, fileNameExpanded, fileName):
 # Add Git information to an environment list
 ####################################################################################################
 
-def getBuildInfo(config, environ):
+def getBuildInfo(config, aol, environ):
 
     if (environ == None):
         environ = {}
 
-    environ['GIT_ORIGIN'] = subprocess.check_output("git config --get remote.origin.url", shell=True).decode('utf-8').strip()
-    environ['GIT_COMMIT'] = subprocess.check_output("git rev-parse HEAD", shell=True).decode('utf-8').strip()
-    environ['GROUPID'] = config["groupId"]
-    environ['ARTIFACTID'] = config["artifactId"]
-    environ['VERSION'] = multipleReplace(config["version"], config["properties"])
+    gitStatus = subprocess.check_output("git status", shell=True).decode('utf-8').strip()
+    gitOrigin = subprocess.check_output("git config --get remote.origin.url", shell=True).decode('utf-8').strip()
+    gitCommit = subprocess.check_output("git rev-parse HEAD", shell=True).decode('utf-8').strip()
+    groupId = config["groupId"]
+    artifactId = config["artifactId"]
+    version = multipleReplace(config["version"], config["properties"])
+    time_seconds = datetime.datetime.now()
+    time_formatted = '{:%Y-%m-%d %H:%M:%S}'.format(time_seconds)
+
+
+
+
+
+    args = ['cmd', '/C', 'git', 'status']
+
+    if verbose(config):
+        print('Args = ' + str(args))
+
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ)
+    stdout, stderr = p.communicate()
+    returncode = p.wait()
+
+    mkdir_p(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR)
+
+    with open(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR + 'stdout.txt', "w") as text_file:
+        text_file.write(stdout.decode('utf-8'))
+
+    with open(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR + 'stderr.txt', "w") as text_file:
+        text_file.write(stderr.decode('utf-8'))
+
+    with open(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR + 'exitcode.txt', "w") as text_file:
+        text_file.write(str(returncode))
+
+
+
+
+
+
+    args = ['cmd', '/C', 'git', 'diff']
+
+    if verbose(config):
+        print('Args = ' + str(args))
+
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ)
+    stdout, stderr = p.communicate()
+    returncode = p.wait()
+
+    mkdir_p(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR)
+
+    with open(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR + 'stdout.txt', "w") as text_file:
+        text_file.write(stdout.decode('utf-8'))
+
+    with open(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR + 'stderr.txt', "w") as text_file:
+        text_file.write(stderr.decode('utf-8'))
+
+    with open(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR + 'exitcode.txt', "w") as text_file:
+        text_file.write(str(returncode))
+
+
+
+
+
+
+    with open(BUILD_OUTPUT_MAIN_INFO_DIR + 'info.txt', "w") as text_file:
+        text_file.write('GIT_ORIGIN=' + gitOrigin + '\n')
+        text_file.write('GIT_COMMIT=' + gitCommit + '\n')
+        text_file.write('GROUPID=' + groupId + '\n')
+        text_file.write('ARTIFACTID=' + artifactId + '\n')
+        text_file.write('AOL=' + str(aol) + '\n')
+        text_file.write('DATETIME=' + time_formatted + '\n')
+
+
+
+
+    environ['GIT_ORIGIN'] = gitOrigin
+    environ['GIT_COMMIT'] = gitCommit
+    environ['GROUPID'] = groupId
+    environ['ARTIFACTID'] = artifactId
+    environ['AOL'] = str(aol)
+    environ['DATETIME'] = time_formatted
 
     return environ
+
+
 
 ####################################################################################################
 # Read the "lastUpdated.json" file
@@ -1141,8 +1221,8 @@ def defaultCompile(config, aol):
 
     if aol.operatingSystem == 'windows':
         makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
-        env = os.environ
-        env['BUILD_TYPE'] = 'normal'
+        env = getBuildInfo(config, aol, os.environ)
+        env['BUILD_TYPE'] = 'static'
         env['SOURCE'] = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
         env['OUTPUT'] = '.'
         p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
