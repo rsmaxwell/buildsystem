@@ -60,6 +60,7 @@ BUILD_ARTIFACT_DIR                      = './build/artifact/'
                                        
 DIST_DIR                                = './build/dist/'
 DISTTEMP_DIR                            = './build/dist.temp/'
+DIST_INFO_DIR                           = './build/dist/info/'
 DIST_BIN_DIR                            = './build/dist/bin/'
 DIST_INCLUDE_DIR                        = './build/dist/include/'
 DIST_LIB_DIR                            = './build/dist/lib/'
