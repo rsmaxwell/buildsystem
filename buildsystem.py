@@ -859,8 +859,10 @@ def getBuildInfo(config, aol, environ):
 
 
 
-
-    args = ['cmd', '/C', 'git', 'status']
+    if aol.operatingSystem == 'windows':
+        args = ['cmd', '/C', 'git', 'status']
+    else:
+        args = ['git', 'status']
 
     if verbose(config):
         print('Args = ' + str(args))
@@ -884,8 +886,10 @@ def getBuildInfo(config, aol, environ):
 
 
 
-
-    args = ['cmd', '/C', 'git', 'diff']
+    if aol.operatingSystem == 'windows':
+        args = ['cmd', '/C', 'git', 'diff']
+    else:
+        args = ['git', 'diff']
 
     if verbose(config):
         print('Args = ' + str(args))
