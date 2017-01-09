@@ -1277,10 +1277,16 @@ def defaultTestCompile(config, aol):
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
 
         env = os.environ
-        env['BUILD_TYPE'] = 'normal'
+        env['BUILD_TYPE'] = 'static'
         env['SOURCE'] = source
         env['OUTPUT'] = '.'
-        p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
+
+        args = ['make', '-f', makefile, 'clean', 'all']
+
+        if (verbose(config)):
+            print('Args = ' + str(args))
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
        
@@ -1306,6 +1312,12 @@ def defaultTestCompile(config, aol):
         env['BUILD_TYPE'] = 'normal'
         env['SOURCE'] = source
         env['OUTPUT'] = '.'
+
+        args = ['make', '-f', makefile, 'clean', 'all']
+
+        if (verbose(config)):
+            print('Args = ' + str(args))
+
         p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
@@ -1338,7 +1350,7 @@ def defaultTest(config, aol):
 
     testExecutables = []
     if aol.operatingSystem == 'windows':
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '/**/*.exe'):
+        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '*.exe'):
             testExecutables.append(filename)
 
         source = BUILD_OUTPUT_MAIN_DIR + '*/*/*.dll'
