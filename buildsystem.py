@@ -35,37 +35,39 @@ INFO = 1
 VERBOSE = 2
 DEBUG = 3
 
-SRC_MAIN_DIR                            = './src/main/'
-SRC_MAIN_C_DIR                          = './src/main/c/'
-SRC_MAIN_MAKE_DIR                       = './src/main/make/'
-SRC_MAIN_ARCHIVE_DIR                    = './src/main/archive/'
+SRC_MAIN_DIR                             = './src/main/'
+SRC_MAIN_C_DIR                           = './src/main/c/'
+SRC_MAIN_MAKE_DIR                        = './src/main/make/'
+SRC_MAIN_ARCHIVE_DIR                     = './src/main/archive/'
+                                        
+SRC_TEST_DIR                             = './src/test/'
+SRC_TEST_C_DIR                           = './src/test/c/'
+SRC_TEST_MAKE_DIR                        = './src/test/make/'
+                                        
+BUILD_DIR                                = './build/'
+BUILDTEMP_DIR                            = './build.temp/'
+BUILD_SOURCE_DIR                         = './build/source/'
+BUILD_SOURCE_MAIN_DIR                    = './build/source/main/'
+BUILD_SOURCE_TEST_DIR                    = './build/source/test/'
+BUILD_TEMP_DIR                           = './build/temp/'
+BUILD_OUTPUT_MAIN_DIR                    = './build/output/main/'
+BUILD_OUTPUT_MAIN_SHARE_DIR              = './build/output/main/share/'
+BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR    = './build/output/main/share/git.status/'
+BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR = './build/output/main/share/git.diff-index/'
+BUILD_OUTPUT_TEST_DIR                    = './build/output/test/'
+BUILD_ARTIFACT_DIR                       = './build/artifact/'
                                        
-SRC_TEST_DIR                            = './src/test/'
-SRC_TEST_C_DIR                          = './src/test/c/'
-SRC_TEST_MAKE_DIR                       = './src/test/make/'
-                                       
-BUILD_DIR                               = './build/'
-BUILDTEMP_DIR                           = './build.temp/'
-BUILD_SOURCE_DIR                        = './build/source/'
-BUILD_SOURCE_MAIN_DIR                   = './build/source/main/'
-BUILD_SOURCE_TEST_DIR                   = './build/source/test/'
-BUILD_DEPENDENCIES_DIR                  = './build/dependencies/'
-BUILD_TEMP_DIR                          = './build/temp/'
-BUILD_OUTPUT_MAIN_DIR                   = './build/output/main/'
-BUILD_OUTPUT_MAIN_INFO_DIR              = './build/output/main/info/'
-BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR    = './build/output/main/info/git.status/'
-BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR = './build/output/main/info/git.diff-index/'
-BUILD_OUTPUT_TEST_DIR                   = './build/output/test/'
-BUILD_ARTIFACT_DIR                      = './build/artifact/'
-                                       
-DIST_DIR                                = './build/dist/'
-DISTTEMP_DIR                            = './build/dist.temp/'
-DIST_INFO_DIR                           = './build/dist/info/'
-DIST_BIN_DIR                            = './build/dist/bin/'
-DIST_INCLUDE_DIR                        = './build/dist/include/'
-DIST_LIB_DIR                            = './build/dist/lib/'
-DIST_LIB_SHARED_DIR                     = './build/dist/lib/shared/'
-DIST_LIB_STATIC_DIR                     = './build/dist/lib/static/'
+DIST_DIR                                 = './build/dist/'
+DISTTEMP_DIR                             = './build/dist.temp/'
+DIST_SHARE_DIR                           = './build/dist/share/'
+DIST_BIN_DIR                             = './build/dist/bin/'
+DIST_INCLUDE_DIR                         = './build/dist/include/'
+DIST_LIB_DIR                             = './build/dist/lib/'
+DIST_LIB_SHARED_DIR                      = './build/dist/lib/shared/'
+DIST_LIB_STATIC_DIR                      = './build/dist/lib/static/'
+
+INSTALL_DIR_LINUX                        = '/usr/local'
+INSTALL_DIR_WINDOWS                      = 'C:/buildsystem'
 
 PACKAGING = 'zip'
 
@@ -852,11 +854,11 @@ def getBuildInfo(config, aol, environ):
     gitCommit = subprocess.check_output("git rev-parse HEAD", shell=True).decode('utf-8').strip()
     groupId = config["groupId"]
     artifactId = config["artifactId"]
+
+
     version = multipleReplace(config["version"], config["properties"])
     time_seconds = datetime.datetime.now()
     time_formatted = '{:%Y-%m-%d %H:%M:%S}'.format(time_seconds)
-
-
 
 
     if aol.operatingSystem == 'windows':
@@ -871,15 +873,15 @@ def getBuildInfo(config, aol, environ):
     stdout, stderr = p.communicate()
     returncode = p.wait()
 
-    mkdir_p(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR)
+    mkdir_p(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR)
 
-    with open(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR + 'stdout.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR + 'stderr.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR + 'stderr.txt', "w") as text_file:
         text_file.write(stderr.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_INFO_GITSTATUS_DIR + 'exitcode.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR + 'exitcode.txt', "w") as text_file:
         text_file.write(str(returncode))
 
 
@@ -898,15 +900,15 @@ def getBuildInfo(config, aol, environ):
     stdout, stderr = p.communicate()
     returncode = p.wait()
 
-    mkdir_p(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR)
+    mkdir_p(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR)
 
-    with open(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR + 'stdout.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR + 'stderr.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR + 'stderr.txt', "w") as text_file:
         text_file.write(stderr.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_INFO_GITDIFFINDEX_DIR + 'exitcode.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR + 'exitcode.txt', "w") as text_file:
         text_file.write(str(returncode))
 
 
@@ -914,13 +916,21 @@ def getBuildInfo(config, aol, environ):
 
 
 
-    with open(BUILD_OUTPUT_MAIN_INFO_DIR + 'info.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_SHARE_DIR + 'info.txt', "w") as text_file:
         text_file.write('GIT_ORIGIN=' + gitOrigin + '\n')
         text_file.write('GIT_COMMIT=' + gitCommit + '\n')
         text_file.write('GROUPID=' + groupId + '\n')
         text_file.write('ARTIFACTID=' + artifactId + '\n')
         text_file.write('AOL=' + str(aol) + '\n')
         text_file.write('DATETIME=' + time_formatted + '\n')
+
+
+
+
+
+
+    with open(BUILD_OUTPUT_MAIN_SHARE_DIR + 'version.txt', "w") as text_file:
+        text_file.write(version)
 
 
 
@@ -1076,10 +1086,10 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId, version):
 # Expand artifact
 ####################################################################################################
 
-def expandArtifact(config, mavenGroupId, mavenArtifactId, version, dependancyDirectory):
+def installArtifact(config, mavenGroupId, mavenArtifactId, version):
 
     if debug(config):
-        print('expandArtifact:')
+        print('installArtifact:')
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
         print('    version = ' + version)
@@ -1090,18 +1100,13 @@ def expandArtifact(config, mavenGroupId, mavenArtifactId, version, dependancyDir
     home = expanduser('~')
     path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + version
     localpath = home + '/.m2/repository/' + path + '/' + fileName
-    directory = dependancyDirectory + '/' + mavenArtifactId.split('-')[0]
 
     if debug(config):
-        print('expandArtifact:')
+        print('installArtifact:')
         print('    localpath = ' + localpath)
-        print('    directory = ' + directory)
-
-    if not os.path.exists(directory):
-        os.makedirs(directory)
 
     with zipfile.ZipFile(localpath, 'r') as z:
-        z.extractall(directory)
+        z.extractall(INSTALL_DIR)
 
 
 ####################################################################################################
@@ -1204,7 +1209,7 @@ def defaultGenerate(config, aol):
             print('    aol = ' + str(aol))
 
         downloadArtifact(config, mavenGroupId, mavenArtifactId, version)
-        expandArtifact(config, mavenGroupId, mavenArtifactId, version, BUILD_DEPENDENCIES_DIR)
+        installArtifact(config, mavenGroupId, mavenArtifactId, version)
 
 
 ####################################################################################################
@@ -1491,6 +1496,12 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
 
     aol = AOL(config)
 
+    if aol.operating_system == 'windows':
+        INSTALL_DIR = INSTALL_DIR_WINDOWS 
+    else:
+        INSTALL_DIR = INSTALL_DIR_LINUX 
+
+    mkdir_p(INSTALL_DIR)
 
     ####################################################################################################
     # Call the build processes
