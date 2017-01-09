@@ -51,9 +51,7 @@ BUILD_SOURCE_MAIN_DIR                    = './build/source/main/'
 BUILD_SOURCE_TEST_DIR                    = './build/source/test/'
 BUILD_TEMP_DIR                           = './build/temp/'
 BUILD_OUTPUT_MAIN_DIR                    = './build/output/main/'
-BUILD_OUTPUT_MAIN_SHARE_DIR              = './build/output/main/share/'
-BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR    = './build/output/main/share/git.status/'
-BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR = './build/output/main/share/git.diff-index/'
+BUILD_OUTPUT_MAIN_METADATA_DIR           = './build/output/main/metadata/'
 BUILD_OUTPUT_TEST_DIR                    = './build/output/test/'
 BUILD_ARTIFACT_DIR                       = './build/artifact/'
                                        
@@ -873,15 +871,17 @@ def getBuildInfo(config, aol, environ):
     stdout, stderr = p.communicate()
     returncode = p.wait()
 
-    mkdir_p(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR)
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR + 'stdout.txt', "w") as text_file:
+    directory = BUILD_OUTPUT_MAIN_METADATA_DIR + 'git.status/'
+    mkdir_p(directory)
+
+    with open(directory + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR + 'stderr.txt', "w") as text_file:
+    with open(directory + 'stderr.txt', "w") as text_file:
         text_file.write(stderr.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_GITSTATUS_DIR + 'exitcode.txt', "w") as text_file:
+    with open(directory + 'exitcode.txt', "w") as text_file:
         text_file.write(str(returncode))
 
 
@@ -900,15 +900,16 @@ def getBuildInfo(config, aol, environ):
     stdout, stderr = p.communicate()
     returncode = p.wait()
 
-    mkdir_p(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR)
+    directory = BUILD_OUTPUT_MAIN_METADATA_DIR + 'git.diff/'
+    mkdir_p(directory)
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR + 'stdout.txt', "w") as text_file:
+    with open(directory + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR + 'stderr.txt', "w") as text_file:
+    with open(directory + 'stderr.txt', "w") as text_file:
         text_file.write(stderr.decode('utf-8'))
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_GITDIFFINDEX_DIR + 'exitcode.txt', "w") as text_file:
+    with open(directory + 'exitcode.txt', "w") as text_file:
         text_file.write(str(returncode))
 
 
@@ -916,7 +917,7 @@ def getBuildInfo(config, aol, environ):
 
 
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_DIR + 'info.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'info.txt', "w") as text_file:
         text_file.write('GIT_ORIGIN=' + gitOrigin + '\n')
         text_file.write('GIT_COMMIT=' + gitCommit + '\n')
         text_file.write('GROUPID=' + groupId + '\n')
@@ -929,7 +930,7 @@ def getBuildInfo(config, aol, environ):
 
 
 
-    with open(BUILD_OUTPUT_MAIN_SHARE_DIR + 'version.txt', "w") as text_file:
+    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'version.txt', "w") as text_file:
         text_file.write(version)
 
 
@@ -1496,7 +1497,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
 
     aol = AOL(config)
 
-    if aol.operating_system == 'windows':
+    if aol.operatingSystem == 'windows':
         INSTALL_DIR = INSTALL_DIR_WINDOWS 
     else:
         INSTALL_DIR = INSTALL_DIR_LINUX 
