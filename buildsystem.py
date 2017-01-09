@@ -64,8 +64,9 @@ DIST_LIB_DIR                             = './build/dist/lib/'
 DIST_LIB_SHARED_DIR                      = './build/dist/lib/shared/'
 DIST_LIB_STATIC_DIR                      = './build/dist/lib/static/'
 
-INSTALL_DIR_LINUX                        = '/usr/local'
-INSTALL_DIR_WINDOWS                      = 'C:/buildsystem'
+INSTALL_DIR_LINUX                        = '/usr/local/'
+INSTALL_DIR_WINDOWS                      = 'C:/buildsystem/'
+INSTALL_DIR                              = 'undefined'
 
 PACKAGING = 'zip'
 
@@ -1064,17 +1065,16 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId, version):
 
 
 ####################################################################################################
-# Expand artifact
+# Install package
 ####################################################################################################
 
-def installArtifact(config, mavenGroupId, mavenArtifactId, version):
+def installPackage(config, mavenGroupId, mavenArtifactId, version):
 
     if debug(config):
-        print('installArtifact:')
+        print('installPackage:')
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
         print('    version = ' + version)
-        print('    dependancyDirectory = ' + dependancyDirectory)
 
     fileName = mavenArtifactId + '-' + version + '.' + PACKAGING
 
@@ -1083,7 +1083,7 @@ def installArtifact(config, mavenGroupId, mavenArtifactId, version):
     localpath = home + '/.m2/repository/' + path + '/' + fileName
 
     if debug(config):
-        print('installArtifact:')
+        print('installPackage:')
         print('    localpath = ' + localpath)
 
     with zipfile.ZipFile(localpath, 'r') as z:
@@ -1191,12 +1191,32 @@ def defaultGenerate(config, aol):
 
         packageName = artifactId.split('-')[0]
         if not os.path.exists(INSTALL_DIR + packageName):
-            needToInstall = yes
+            needToInstall = True
         else:
-            needToInstall = no
+            needToInstall = False
 
-        downloadArtifact(config, mavenGroupId, mavenArtifactId, version)
-        installArtifact(config, mavenGroupId, mavenArtifactId, version)
+
+        filename = INSTALL_DIR + packageName + '/info.json'
+        if not os.path.exists(filename):
+            print('package info file not found: ' + filename)
+            needToInstall = True
+        else:
+            with open(filename) as data_file:    
+                data = json.load(data_file)
+
+            installedVersion = data['version']
+            print('installedVersion = ' + installedversion)
+            print('requiredVersion  = ' + version)
+
+            if version == installedVersion:
+                print('Package ' + packageName + ' already installed')
+                needToInstall = False
+            else:
+                needToInstall = True
+
+        if needToInstall:
+            downloadArtifact(config, mavenGroupId, mavenArtifactId, version)
+            installPackage(config, mavenGroupId, mavenArtifactId, version)
 
 
 ####################################################################################################
@@ -1483,6 +1503,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
 
     aol = AOL(config)
 
+    global INSTALL_DIR
     if aol.operatingSystem == 'windows':
         INSTALL_DIR = INSTALL_DIR_WINDOWS 
     else:
