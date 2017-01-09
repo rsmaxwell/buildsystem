@@ -912,36 +912,16 @@ def getBuildInfo(config, aol, environ):
     with open(directory + 'exitcode.txt', "w") as text_file:
         text_file.write(str(returncode))
 
+    data = {}
+    data['git'] = { 'origin' : gitOrigin, 'commit' : gitCommit }
+    data['groupId'] = groupId
+    data['artifactId'] = artifactId
+    data['aol'] = str(aol)
+    data['datetime'] = time_formatted
+    data['version'] = version
 
-
-
-
-
-    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'info.txt', "w") as text_file:
-        text_file.write('GIT_ORIGIN=' + gitOrigin + '\n')
-        text_file.write('GIT_COMMIT=' + gitCommit + '\n')
-        text_file.write('GROUPID=' + groupId + '\n')
-        text_file.write('ARTIFACTID=' + artifactId + '\n')
-        text_file.write('AOL=' + str(aol) + '\n')
-        text_file.write('DATETIME=' + time_formatted + '\n')
-
-
-
-
-
-
-    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'version.txt', "w") as text_file:
-        text_file.write(version)
-
-
-
-
-    environ['GIT_ORIGIN'] = gitOrigin
-    environ['GIT_COMMIT'] = gitCommit
-    environ['GROUPID'] = groupId
-    environ['ARTIFACTID'] = artifactId
-    environ['AOL'] = str(aol)
-    environ['DATETIME'] = time_formatted
+    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'info.json', "w") as outfile:
+        json.dump(data, outfile, sort_keys = True, indent = 4)
 
     return environ
 
@@ -1208,6 +1188,12 @@ def defaultGenerate(config, aol):
             print('    mavenArtifactId = ' + mavenArtifactId)
             print('    version = ' + version)
             print('    aol = ' + str(aol))
+
+        packageName = artifactId.split('-')[0]
+        if not os.path.exists(INSTALL_DIR + packageName):
+            needToInstall = yes
+        else:
+            needToInstall = no
 
         downloadArtifact(config, mavenGroupId, mavenArtifactId, version)
         installArtifact(config, mavenGroupId, mavenArtifactId, version)
