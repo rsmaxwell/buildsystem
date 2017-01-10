@@ -1196,7 +1196,7 @@ def defaultGenerate(config, aol):
             needToInstall = False
 
 
-        filename = INSTALL_DIR + packageName + '/info.json'
+        filename = INSTALL_DIR + 'share/' + packageName + '/info.json'
         if not os.path.exists(filename):
             print('package info file not found: ' + filename)
             needToInstall = True
@@ -1205,18 +1205,29 @@ def defaultGenerate(config, aol):
                 data = json.load(data_file)
 
             installedVersion = data['version']
-            print('installedVersion = ' + installedversion)
+            print('installedVersion = ' + installedVersion)
             print('requiredVersion  = ' + version)
 
             if version == installedVersion:
                 print('Package ' + packageName + ' already installed')
                 needToInstall = False
+
+                snap = version.endswith('SNAPSHOT')
+                if snap:
+                    print('Checking ' + packageName + ' snapshot is up-to-date')
+                    needToInstall = True
+                else:
+                    needToInstall = False
             else:
+                print('Package ' + packageName + ' Not installed')
                 needToInstall = True
 
         if needToInstall:
             downloadArtifact(config, mavenGroupId, mavenArtifactId, version)
             installPackage(config, mavenGroupId, mavenArtifactId, version)
+
+    print('EXITing ...')
+    sys.exit(1)
 
 
 ####################################################################################################
