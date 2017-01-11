@@ -984,37 +984,59 @@ def writeLastUpdatedFile(config, directory):
 # Is the package up-to-date
 ####################################################################################################
 
-def isPackageInstallNeeded(config, artifactId, requiredVersion):
+def isInstalledPackageAtRequredVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId):
 
     packageName = artifactId.split('-')[0]
-    if not os.path.exists(INSTALL_DIR + packageName):
+    print('packageName = ' + packageName)    
+
+    packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/info.json')
+    print('packageInfoFilename = ' + packageInfoFilename) 
+    
+    if not os.path.exists(packageInfoFilename):
+        print('packageInfoFilename not found: ' + packageInfoFilename + ' Need to re-install')
         return True
 
-
-    filename = INSTALL_DIR + 'share/' + packageName + '/info.json'
-    if not os.path.exists(filename):
-        print('package info file not found: ' + filename)
-        return True
-
-    with open(filename) as data_file:    
+    with open(packageInfoFilename) as data_file:    
         data = json.load(data_file)
 
-    installedVersion = data['requiredVersion']
+    installedVersion = data['version']
     print('installedVersion = ' + installedVersion)
     print('requiredVersion  = ' + requiredVersion)
 
     if requiredVersion != installedVersion:
-        print('Package ' + packageName + ' Not installed')
+        print('Package ' + packageName + ' Not installed at required version. Need to reinstall')
         return True
 
-    print('Package ' + packageName + ' already installed')
+    print('Package ' + packageName + ' is already installed at right version')
     needToInstall = False
 
     snap = requiredVersion.endswith('SNAPSHOT')
     if not snap:
+        print('Package is not a snapshot. Nothing more to do!')        
         return False
 
-    print('Checking ' + packageName + ' snapshot is up-to-date')
+    print('Package is a snapshot. Need to check snapshot is up-to-date')
+    
+    # Find a repository containing the package
+    repositoryUrl = None
+    for repository in config['repositories']:
+        url = multipleReplace(repository["url"], config["properties"])
+
+        if debug(config):
+            print('    repositoryUrl = ' + url)
+
+        info = getSnapshotInfoFromRepositoryMetadata(config, url, mavenGroupId, mavenArtifactId, requiredVersion)
+        if info == None:
+            if debug(config):
+                print('    Snapshot not found in this Repository')
+            continue    
+            
+        print('Found package snapshot ' + packageName + ' in RepositoryUrl: ' + url)
+        repositoryUrl = url
+        
+    buildNumber = info.get('buildNumber')
+    print('Current snapshot build number = ' + str(buildNumber))
+    
     return True
 
 
@@ -1023,7 +1045,7 @@ def isPackageInstallNeeded(config, artifactId, requiredVersion):
 # Is the package up-to-date
 ####################################################################################################
 
-def isArtifactDownloadNeeded(config, artifactId, requiredVersion):
+def packageHasBeenDownloaded(config, artifactId, requiredVersion):
 
     snap = version.endswith('SNAPSHOT')
 
@@ -1051,7 +1073,7 @@ def isArtifactDownloadNeeded(config, artifactId, requiredVersion):
     else:
         searchRemoteRepositories = True
         if verbose(config):
-            print('Artifact not found in local reposity')
+            print('Artifact not found in local repository')
 
     return True
 
@@ -1221,7 +1243,7 @@ def defaultGenerate(config, aol):
     for dependency in config['dependencies']:
         groupId = dependency.get('groupId')
         artifactId = dependency.get('artifactId')
-        requiredVersion = dependency.get('requiredVersion')
+        requiredVersion = dependency.get('version')
         packaging = dependency.get('packaging', 'zip')
 
         reposArtifactId = artifactId.replace('-', '/')
@@ -1239,11 +1261,11 @@ def defaultGenerate(config, aol):
             print('    requiredVersion = ' + requiredVersion)
             print('    aol = ' + str(aol))
 
-        installNeeded = isPackageInstallNeeded(config, artifactId, requiredVersion):
-        if installNeeded:
+        installedPackageAtRequiredVersion = isInstalledPackageAtRequredVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId)
+        if not installedPackageAtRequiredVersion:
 
-            downloadNeeded = isArtifactDownloadNeeded(config, artifactId, requiredVersion):
-            if downloadNeeded:
+            hasBeenDownloaded = packageHasBeenDownloaded(config, artifactId, requiredVersion)
+            if not hasBeenDownloaded:
                 downloadArtifact(config, mavenGroupId, mavenArtifactId, requiredVersion)
 
             installPackage(config, mavenGroupId, mavenArtifactId, requiredVersion)
