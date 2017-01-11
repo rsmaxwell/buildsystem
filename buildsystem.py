@@ -1361,17 +1361,17 @@ def defaultTest(config, aol):
 
     testExecutables = []
     if aol.operatingSystem == 'windows':
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '*.exe'):
+        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '**/*.exe', recursive=True):
             testExecutables.append(filename)
 
-        source = BUILD_OUTPUT_MAIN_DIR + '*/*/*.dll'
-        for file in glob.iglob(source):
+        source = BUILD_OUTPUT_MAIN_DIR + '**/*.dll'
+        for file in glob.iglob(source, recursive=True):
             fileName = os.path.basename(file)
             parentDir = os.path.dirname(file)
             parentName = os.path.basename(parentDir)
             parentParentDir = os.path.dirname(parentDir)
             parentParentName = os.path.basename(parentParentDir)
-            destination = str(parentParentDir) + '/' + filename
+            destination = str(parentParentDir) + '/' + fileName
             destination = BUILD_OUTPUT_TEST_DIR + parentParentName + '/' + fileName
             shutil.copy2(file, destination)
 
