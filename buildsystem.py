@@ -350,10 +350,10 @@ def parseReleaseNumberFromMetadata(content):
 # Parse the build number from the metadata
 ####################################################################################################
 
-def parseSnapshotInfoFromMetadata(config, content):
+def parseSnapshotMetadata(config, content):
 
     if debug(config):
-        print("parseSnapshotInfoFromMetadata:")
+        print("parseSnapshotMetadata:")
 
     root = ET.fromstring(content)
 
@@ -409,48 +409,20 @@ def getSnapshotInfoFromDistributionMetadata(config, mavenGroupId, mavenArtifactI
 
     deployment = config['distributionManagement']['repository']['deployment']
     repositoryUrl = multipleReplace(deployment['url'], config['properties'])
-    metadataUrl = repositoryUrl + '/' + mavenGroupId.replace('.', '/') + '/' + mavenArtifactId  + '/' + version + '/' + 'maven-metadata.xml'
 
-    if debug(config):
-        print('    repositoryUrl = ' + repositoryUrl)
-        print('    metadataUrl = ' + metadataUrl)
-
-    # Get the metadata to discover the current build number
-    r = requests.get(metadataUrl, stream=True)
-
-    # Use the metadata file to work out the build number
-    if r.status_code == 200: # http.HTTPStatus.OK.value
-        if debug(config):
-            print('getSnapshotInfoFromDistributionMetadata(2)')
-            print('    Artifact was found in Nexus')
-
-        snapshotInfo = parseSnapshotInfoFromMetadata(config, r.text)
-
-    elif r.status_code == 404: # http.HTTPStatus.NOT_FOUND.value
-        if debug(config):
-            print('getSnapshotInfoFromDistributionMetadata(3)')
-            print('    Artifact not found in Nexus')
-
-    else:
-        print('Unexpected Http response ' + str(r.status_code) + ' when getting: maven-metadata.xml')
-        print('    metadataUrl: ' + metadataUrl)
-        content = r.raw.decode('utf-8')
-        print('Content =', content)
-        sys.exit(99)
-
-    return snapshotInfo
+    return getSnapshotMetadataFromRemoteRepository(config, repositoryUrl, mavenGroupId, mavenArtifactId, version)
 
 
 ####################################################################################################
 # Read the metadata and return the version
 ####################################################################################################
 
-def getSnapshotInfoFromRepositoryMetadata(config, repositoryUrl, mavenGroupId, mavenArtifactId, version):
+def getSnapshotMetadataFromRemoteRepository(config, repositoryUrl, mavenGroupId, mavenArtifactId, version):
 
     snapshotInfo = None
 
     if debug(config):
-        print('getSnapshotInfoFromRepositoryMetadata:')
+        print('getSnapshotMetadataFromRemoteRepository:')
         print('    repositoryUrl = ' + repositoryUrl)
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
@@ -469,7 +441,7 @@ def getSnapshotInfoFromRepositoryMetadata(config, repositoryUrl, mavenGroupId, m
         if debug(config):
             print('    Artifact was found in Remote Repository')
 
-        snapshotInfo = parseSnapshotInfoFromMetadata(config, r.text)
+        snapshotInfo = parseSnapshotMetadata(config, r.text)
 
     elif r.status_code == 404: # http.HTTPStatus.NOT_FOUND.value
         if debug(config):
@@ -756,7 +728,7 @@ def uploadArtifact(config, mavenGroupId, mavenArtifactId, version, filename):
 
     if debug(config):
         file.seek(0, os.SEEK_SET)
-        print('uploadArtifact(2): ')
+        print('uploadArtifact(3): ')
         print(file.read().decode('utf-8'))
 
     uploadFileAndHashes(config, file, filePathVersion, fileName, 'pom')
@@ -932,13 +904,16 @@ def getBuildInfo(config, aol, environ):
 # Read the "lastUpdated.json" file
 ####################################################################################################
 
-def readLastUpdatedFile(config, directory):
+def readLocalRepositoryArtifactMetadata(config, directory):
 
     if debug(config):
-        print('readLastUpdatedFile:')
+        print('readLocalRepositoryArtifactMetadata:')
         print('    directory = ' + directory)
 
-    filepath = directory + '/' + 'lastUpdated.json'
+    filepath = directory + '/' + 'metadata.json'
+
+    if debug(config):
+        print('    filepath  = ' + filepath)
 
     if not os.path.exists(filepath):
         if verbose(config):
@@ -946,98 +921,233 @@ def readLastUpdatedFile(config, directory):
             print(filepath)
         return None
 
-    data = {}
+    metadata = {}
     with open(filepath) as file:
-        data.update(json.load(file))
+        metadata.update(json.load(file))
 
-    lastChecked = data.get('lastChecked')
-    now = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
+    return metadata
 
-    print('    now = ' + now)
-    print('    lastChecked = ' + lastChecked)
-
-    return lastChecked
 
 ####################################################################################################
 # Write the "lastUpdated.json" file to the local directory
 ####################################################################################################
 
-def writeLastUpdatedFile(config, directory):
+def writeLocalRepositoryArtifactMetadada(config, localRepositoryPath, data):
 
     if debug(config):
-        print('writeLastUpdatedFile:')
-        print('    directory = ' + directory)
+        print('updateOriginalFilenameInLocalRepositoryArtifactMetadada:')
+        print('    localRepositoryPath = ' + localRepositoryPath)
+        print('    originalFilename = ' + originalFilename)
 
-    timestamp = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
-    data = {'lastChecked': timestamp}
+    if not os.path.exists(localRepositoryPath):
+        os.makedirs(localRepositoryPath)
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    filepath = directory + '/' + 'lastUpdated.json'
+    filepath = localRepositoryPath + '/' + 'metadata.json'
 
     with open(filepath, 'w') as outfile:
-        json.dump(data, outfile, indent=4, sort_keys=True, separators=(',', ':'))
+        json.dump(data, outfile, sort_keys=True, indent=4)
+
+
+#
+####################################################################################################
+#
+####################################################################################################
+
+def checkUpdatePolicyInterval(config, intervalMinutes, lastCheckedTimestamp):
+
+    interval = datetime.timedelta(minutes=intervalMinutes)
+    lastChecked = datetime.datetime.strptime(lastCheckedTimestamp, '%Y%m%d.%H%M%S')
+    now = datetime.datetime.now()
+
+    if debug(config):
+        print('intervalMinutes = ' + str(intervalMinutes))
+        print('interval        = ' + str(interval))
+        print('lastChecked     = ' + str(lastChecked))
+
+    if verbose(config):
+        print('lastChecked + interval = ' + str(lastChecked + interval))
+        print('now                    = ' + str(now))
+
+    if now > lastChecked + interval:
+        return True
+
+    return False
+
+
+####################################################################################################
+#
+####################################################################################################
+
+def checkUpdatePolicy(config, repository, lastChecked):
+
+    if debug(config):
+        print('checkUpdatePolicy:')
+        print('    repository = ' + str(repository))
+        print('    lastChecked = ' + lastChecked)
+
+    checkRemoteRepository = False
+    key = 'updatePolicy'
+    if key in repository:
+        updatePolicy = repository[key]
+
+        if updatePolicy == 'daily':
+            checkRemoteRepository = False 
+   
+        elif updatePolicy == 'always':
+            checkRemoteRepository = True
+          
+        elif updatePolicy == 'never':
+            checkRemoteRepository = False                     
+                                  
+        else:
+            match = re.match('interval:([0-9]{1,10})', updatePolicy)
+            if match:
+                string = match.group(1)
+                interval = int(string)
+                checkRemoteRepository = checkUpdatePolicyInterval(config, interval, lastChecked)
+
+            else:
+                print('Unexpected value in the repository updatePolicy: ' + updatePolicy)
+                print('Repository: ')
+                print(json.dumps(repository, sort_keys = True, indent = 4))
+                sys.exit(2)
+
+    else:
+        interval = 24 * 60    # 1 day in minutes
+        checkRemoteRepository = checkUpdatePolicyInterval(config, interval, lastChecked) 
+
+    if verbose(config):
+        if checkRemoteRepository:
+            print('Need to check Remote Repository')
+        else:
+            print('Skipping Remote Repository')
+
+    return checkRemoteRepository
 
 
 ####################################################################################################
 # Is the package up-to-date
 ####################################################################################################
 
-def isInstalledPackageAtRequredVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId):
+def isInstallNeeded(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
 
     packageName = artifactId.split('-')[0]
-    print('packageName = ' + packageName)    
+    if verbose(config):
+        print('packageName = ' + packageName)    
 
+    #---------------------------------------------------------------------------
+    # Check the version of the installed version of the package
+    #---------------------------------------------------------------------------
     packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/info.json')
-    print('packageInfoFilename = ' + packageInfoFilename) 
+    if verbose(config):
+        print('packageInfoFilename = ' + packageInfoFilename) 
     
     if not os.path.exists(packageInfoFilename):
         print('packageInfoFilename not found: ' + packageInfoFilename + ' Need to re-install')
-        return True
+        return (True, None)
 
     with open(packageInfoFilename) as data_file:    
         data = json.load(data_file)
 
+    if verbose(config):
+        print('packageInfoFilename:')
+        print(json.dumps(data, sort_keys=True, indent=4)) 
+
     installedVersion = data['version']
-    print('installedVersion = ' + installedVersion)
-    print('requiredVersion  = ' + requiredVersion)
+    if verbose(config):
+        print('installedVersion = ' + installedVersion)
+        print('requiredVersion  = ' + requiredVersion)
 
     if requiredVersion != installedVersion:
         print('Package ' + packageName + ' Not installed at required version. Need to reinstall')
-        return True
+        return (True, None)
 
-    print('Package ' + packageName + ' is already installed at right version')
-    needToInstall = False
+    if verbose(config):
+        print('Package ' + packageName + ' is already installed at right version')
 
     snap = requiredVersion.endswith('SNAPSHOT')
     if not snap:
         print('Package is not a snapshot. Nothing more to do!')        
-        return False
+        return (False, None)
 
-    print('Package is a snapshot. Need to check snapshot is up-to-date')
-    
+    if verbose(config):
+        print('Package is a snapshot. Need to check snapshot is up-to-date')
+
+    #---------------------------------------------------------------------------
+    # Check the version of the artifact in the local repository
+    #---------------------------------------------------------------------------
+    metadata = readLocalRepositoryArtifactMetadata(config, localRepositoryPath)
+    if metadata is None:
+        if verbose(config):
+            print('The package was not found in the local  repository. Need to install')
+        return (True, None)
+
+    if verbose(config):
+        print('localRepositoryPath = ' + localRepositoryPath)
+        print('Package metadata for the local repository')
+        print(json.dumps(metadata, sort_keys = True, indent = 4))
+
+    currentPackage = metadata['originalFilename']
+    lastChecked = metadata['lastChecked']
+
+
+    #---------------------------------------------------------------------------
+    # Check the version of the artifact in the remote repository
+    #---------------------------------------------------------------------------     
+   
     # Find a repository containing the package
-    repositoryUrl = None
+    found = None
     for repository in config['repositories']:
-        url = multipleReplace(repository["url"], config["properties"])
+  
+        if verbose(config):
+            print('Repository:')
+            print(json.dumps(repository, sort_keys = True, indent = 4))
 
-        if debug(config):
-            print('    repositoryUrl = ' + url)
+        repositoryUrl = multipleReplace(repository['url'], config['properties'])
 
-        info = getSnapshotInfoFromRepositoryMetadata(config, url, mavenGroupId, mavenArtifactId, requiredVersion)
-        if info == None:
-            if debug(config):
-                print('    Snapshot not found in this Repository')
-            continue    
-            
-        print('Found package snapshot ' + packageName + ' in RepositoryUrl: ' + url)
-        repositoryUrl = url
-        
-    buildNumber = info.get('buildNumber')
-    print('Current snapshot build number = ' + str(buildNumber))
-    
-    return True
+        checkRemoteRepository = checkUpdatePolicy(config, repository, lastChecked) 
+        if not checkRemoteRepository:
+            if verbose(config):
+                print('Skipping repository due to update policy')
+            continue
+
+        info = getSnapshotMetadataFromRemoteRepository(config, repositoryUrl, mavenGroupId, mavenArtifactId, requiredVersion)
+        if info:
+            found = repository
+            break
+
+        if verbose(config):
+            print('Snapshot not found in this Repository')
+
+    needToInstall = True
+    if not found:
+        print('Package not found in any repository')
+        sys.exit(1)
+
+    if verbose(config):
+        print('Found package snapshot ' + packageName + ' in RepositoryUrl: ' + repositoryUrl)
+        print('Package metadata for the remote repository')
+        print(json.dumps(info, sort_keys = True, indent = 4))
+
+        timestamp = info['timestamp']
+        buildNumber = info['buildNumber']
+
+        availablePackage = mavenArtifactId  + '-' + requiredVersion.replace('SNAPSHOT', timestamp) + '-' + str(buildNumber) + '.' + PACKAGING
+
+        if verbose(config):
+            print('currentPackage   = ' + currentPackage)
+            print('availablePackage = ' + availablePackage)
+
+        if (currentPackage == availablePackage):
+            if verbose(config):
+                print('The package in the local repository is already the latest version')
+            needToInstall = False
+        else:
+            if verbose(config):
+                print('The package in the local repository is not the required version. Need to install')
+            needToInstall = True
+
+    return (needToInstall, repository)
 
 
 
@@ -1045,28 +1155,20 @@ def isInstalledPackageAtRequredVersion(config, artifactId, requiredVersion, mave
 # Is the package up-to-date
 ####################################################################################################
 
-def packageHasBeenDownloaded(config, artifactId, requiredVersion):
-
-    snap = version.endswith('SNAPSHOT')
-
-    path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + version
-
-    home = expanduser('~')
-    localpath = home + '/.m2/repository/' + path
-    fileName = mavenArtifactId + '-' + version
+def isRemoteRepositorySearchNeeded(config, localRepositoryPath, fileName, isSnapshot):
 
     if debug(config):
+        print('isRemoteRepositorySearchNeeded:')
+        print('    localRepositoryPath = ' + localRepositoryPath)
         print('    fileName = ' + fileName)
-        print('    path = ' + path)
-        print('    localpath = ' + localpath)
 
-    lastUpdated = readLastUpdatedFile(config, localpath)
+    lastUpdated = readLocalRepositoryArtifactMetadata(config, localRepositoryPath)
 
     searchRemoteRepositories = False
     if snap:
         searchRemoteRepositories = True
 
-    elif os.path.exists(localpath + '/' + fileName + '.' + PACKAGING):
+    elif os.path.exists(localRepositoryPath + '/' + fileName + '.' + PACKAGING):
         searchRemoteRepositories = False
         if verbose(config):
             print('Artifact already exists in local repository')
@@ -1075,7 +1177,21 @@ def packageHasBeenDownloaded(config, artifactId, requiredVersion):
         if verbose(config):
             print('Artifact not found in local repository')
 
-    return True
+    return searchRemoteRepositories
+
+#
+####################################################################################################
+# Download an artifact
+####################################################################################################
+
+def findRemoteRepository(config, mavenGroupId, mavenArtifactId, version, isSnapshot):
+
+    if debug(config):
+        print('findRemoteRepository:')
+        print('    mavenGroupId = ' + mavenGroupId)
+        print('    mavenArtifactId = ' + mavenArtifactId)
+        print('    version = ' + version)
+        print('    localRepositoryPath = ' + localRepositoryPath)
 
 
 ####################################################################################################
@@ -1089,9 +1205,10 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId, version):
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
         print('    version = ' + version)
+        print('    localRepositoryPath = ' + localRepositoryPath)
 
 
-    writeLastUpdatedFile(config, localpath)
+    updateLastUpdatedInLocalRepositoryArtifactMetadada(config, localRepositoryPath)
 
     if searchRemoteRepositories:
         print('Looking for artifact in remote repositories')
@@ -1103,7 +1220,7 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId, version):
                 print('    repositoryUrl = ' + repositoryUrl)
 
             if snap:
-                info = getSnapshotInfoFromRepositoryMetadata(config, repositoryUrl, mavenGroupId, mavenArtifactId, version)
+                info = getSnapshotMetadataFromRemoteRepository(config, repositoryUrl, mavenGroupId, mavenArtifactId, version)
                 if info == None:
                     if debug(config):
                         print('    Snapshot not found in Repository')
@@ -1112,8 +1229,8 @@ def downloadArtifact(config, mavenGroupId, mavenArtifactId, version):
             else:
                 fileNameExpanded = mavenArtifactId + '-' + version
 
-            localFilenameExpanded = localpath + '/' + fileNameExpanded
-            localFilename = localpath + '/' + fileName
+            localFilenameExpanded = localRepositoryPath + '/' + fileNameExpanded
+            localFilename = localRepositoryPath + '/' + fileName
 
             url = repositoryUrl + '/' + path + '/' + fileNameExpanded
 
@@ -1261,12 +1378,22 @@ def defaultGenerate(config, aol):
             print('    requiredVersion = ' + requiredVersion)
             print('    aol = ' + str(aol))
 
-        installedPackageAtRequiredVersion = isInstalledPackageAtRequredVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId)
-        if not installedPackageAtRequiredVersion:
+        localRepositoryPath = expanduser('~') + '/.m2/repository/' + mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + requiredVersion
+        localRepositoryPath = os.path.normpath(localRepositoryPath)
+        fileName = mavenArtifactId + '-' + requiredVersion
+        isSnapshot = requiredVersion.endswith('SNAPSHOT')
 
-            hasBeenDownloaded = packageHasBeenDownloaded(config, artifactId, requiredVersion)
-            if not hasBeenDownloaded:
-                downloadArtifact(config, mavenGroupId, mavenArtifactId, requiredVersion)
+        needToInstall, repositoryUrl = isInstallNeeded(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
+        if needToInstall:
+
+            searchNeeded = isRemoteRepositorySearchNeeded(config, localRepositoryPath, fileName, isSnapshot)
+
+            print('**** EXITing ****')
+            sys.exit(2)
+
+            if searchNeeded:
+                repository = findRemoteRepository(config, mavenGroupId, mavenArtifactId, requiredVersion, isSnapshot)
+                downloadArtifact(config, repository, mavenGroupId, mavenArtifactId, requiredVersion)
 
             installPackage(config, mavenGroupId, mavenArtifactId, requiredVersion)
 
