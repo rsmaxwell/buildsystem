@@ -1020,36 +1020,41 @@ def checkUpdatePolicy(config, repository, lastChecked):
 
     return checkRemoteRepository
 
+#
 
 ####################################################################################################
 # Is the installed package up-to-date compared to the remote repository
 ####################################################################################################
 
-def isInstallNeeded(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
+def isDownloadedPackageAtRequiredVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
+
+    localMetadata = readLocalRepositoryArtifactMetadata(config, localRepositoryPath)
+    if localMetadata is None:
+        if verbose(config):
+            print('The package was not found in the local repository. Need to install')
+        return (True, None)
+
+    if verbose(config):
+        print('localRepositoryPath = ' + localRepositoryPath)
+        print('Package metadata for the local repository')
+        print(json.dumps(localMetadata, sort_keys = True, indent = 4))
+
+    lastChecked = localMetadata['lastChecked']
+    localVersion = localMetadata['version']
+
+
+####################################################################################################
+# Is the installed package up-to-date compared to the remote repository
+####################################################################################################
+
+def isInstalledPackageAtRequiredVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
 
     packageName = artifactId.split('-')[0]
     if verbose(config):
         print('packageName = ' + packageName)    
 
     #---------------------------------------------------------------------------
-    # Get the time the remote repository was last checked from the local repository metadata
-    #---------------------------------------------------------------------------
-    localMetadata = readLocalRepositoryArtifactMetadata(config, localRepositoryPath)
-    if localMetadata is None:
-        if verbose(config):
-            print('The package was not found in the local  repository. Need to install')
-        return (True, None)
-    
-    if verbose(config):
-        print('localRepositoryPath = ' + localRepositoryPath)
-        print('Package metadata for the local repository')
-        print(json.dumps(localMetadata, sort_keys = True, indent = 4))
-    
-    lastChecked = localMetadata['lastChecked']
-    localVersion = localMetadata['version']
-
-    #---------------------------------------------------------------------------
-    # Check the version of the installed version of the package
+    # Is the version of the installed package the same as the requiredVersion
     #---------------------------------------------------------------------------
     packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/info.json')
     if verbose(config):
@@ -1087,6 +1092,24 @@ def isInstallNeeded(config, artifactId, requiredVersion, mavenGroupId, mavenArti
         print('Package is a snapshot. Need to check snapshot is up-to-date')
 
     installedPackage = installedMetadata['originalFilename']
+
+
+    #---------------------------------------------------------------------------
+    # Get the time the remote repository was last checked from the local repository metadata
+    #---------------------------------------------------------------------------
+    localMetadata = readLocalRepositoryArtifactMetadata(config, localRepositoryPath)
+    if localMetadata is None:
+        if verbose(config):
+            print('The package was not found in the local repository. Need to install')
+        return (True, None)
+
+    if verbose(config):
+        print('localRepositoryPath = ' + localRepositoryPath)
+        print('Package metadata for the local repository')
+        print(json.dumps(localMetadata, sort_keys = True, indent = 4))
+
+    lastChecked = localMetadata['lastChecked']
+    localVersion = localMetadata['version']
 
     #---------------------------------------------------------------------------
     # Check the version of the artifact in the remote repository
@@ -1158,10 +1181,10 @@ def isInstallNeeded(config, artifactId, requiredVersion, mavenGroupId, mavenArti
 # Is the downloaded archive for the package up-to-date compared to the remote repository
 ####################################################################################################
 
-def isPackageUpToDate(config, localRepositoryPath, fileName, isSnapshot):
+def xxxxxisPackageUpToDate(config, localRepositoryPath, fileName, isSnapshot):
 
     if verbose(config):
-        print('isPackageUpToDate:')
+        print('isInstalledPackageAtRequiredVersion:')
         print('    localRepositoryPath = ' + localRepositoryPath)
         print('    fileName = ' + fileName)
 
@@ -1398,13 +1421,12 @@ def defaultGenerate(config, aol):
         fileName = mavenArtifactId + '-' + requiredVersion
         isSnapshot = requiredVersion.endswith('SNAPSHOT')
 
-        needToInstall, repository = isInstallNeeded(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
+        needToDownload, needToInstall, repository = isInstalledPackageAtRequiredVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
+
+        if needToDownload:
+            downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGroupId, mavenArtifactId, requiredVersion, isSnapshot)
+
         if needToInstall:
-
-            searchNeeded = isPackageUpToDate(config, localRepositoryPath, fileName, isSnapshot)
-            if searchNeeded:
-                downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGroupId, mavenArtifactId, requiredVersion, isSnapshot)
-
             installPackage(config, mavenGroupId, mavenArtifactId, requiredVersion)
 
 
