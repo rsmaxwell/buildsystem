@@ -1,5 +1,4 @@
 
-
 import platform
 import os
 import subprocess
@@ -892,7 +891,7 @@ def getBuildInfo(config, aol, environ):
     data['datetime'] = time_formatted
     data['version'] = version
 
-    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'info.json', "w") as outfile:
+    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'metadata.json', "w") as outfile:
         json.dump(data, outfile, sort_keys = True, indent = 4)
 
     return environ
@@ -920,7 +919,6 @@ def readLocalRepositoryPackageMetadata(config, directory):
 
     if debug(config):
         print('readLocalRepositoryPackageMetadata:')
-        print('    directory = ' + directory)
 
     filepath = directory + '/' + 'metadata.json'
 
@@ -1153,6 +1151,10 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
     packageName = getPackageName(artifactId)
     
     localMetadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
+    if localMetadata is None:
+        if verbose(config):
+            print('Package ' + packageName + ' not found in local repository. Update needed') 
+        return (True, None)
 
     key = 'version'
     if key in localMetadata:
@@ -1216,7 +1218,7 @@ def checkVersionOfInstalledPackage(config, artifactId, requiredVersion, mavenGro
     #---------------------------------------------------------------------------
     # Is the version of the installed package the same as the requiredVersion
     #---------------------------------------------------------------------------
-    packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/info.json')
+    packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/metadata.json')
     if verbose(config):
         print('packageInfoFilename = ' + packageInfoFilename) 
     
@@ -1302,8 +1304,8 @@ def downloadArtifactFromRepository(config, repository, localRepositoryPath, file
     if isSnapshot:
         remoteMetadata = getSnapshotMetadataFromRemoteRepository(config, repositoryUrl, mavenGroupId, mavenArtifactId, version)
         if remoteMetadata == None:
-            print('Artifact ' + fileName + ' not found in remote repositories')
-            sys.exit(99)
+            print('Artifact ' + fileName + ' not found in remote repository')
+            return False
         else:
             if debug(config):
                 print('Remote repository metadata')
@@ -1334,6 +1336,12 @@ def downloadArtifactFromRepository(config, repository, localRepositoryPath, file
     if rc != 0:
         print('Error downloading ' + localFilename + '.pom from remote repository')
         sys.exit(99)
+
+    localMetadata = {}
+    localMetadata['version'] = version
+    localMetadata['originalFilename'] = fileNameExpanded
+    localMetadata['lastChecked'] = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
+    writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
 
     return True
 
