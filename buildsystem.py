@@ -958,6 +958,7 @@ def writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, metadata):
 
     if verbose(config):
         print('Updating local repository metadata')
+    if debug(config):        
         print(json.dumps(metadata, sort_keys = True, indent = 4))
 
 
@@ -1082,7 +1083,7 @@ def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, m
     # Lookup the packageVersion
     #---------------------------------------------------------------------------
     if verbose(config):
-        print('Found package snapshot ' + packageName + ' in repository: ' + repository['id'])
+        print('Found package snapshot ' + packageName + ' in repository: ' + repository['url'])
     if debug(config):
         print('Package metadata for the remote repository')
         print(json.dumps(remoteMetadata, sort_keys = True, indent = 4))
@@ -1154,24 +1155,6 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
     if localMetadata is None:
         if verbose(config):
             print('Package ' + packageName + ' not found in local repository. Update needed') 
-        return (True, None)
-
-    key = 'version'
-    if key in localMetadata:
-        localVersion = localMetadata[key]
-    else:
-        print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('localRepositoryPath = ' + localRepositoryPath) 
-        print(json.dumps(localMetadata, sort_keys=True, indent=4))         
-        sys.exit(3)
-
-    if debug(config):
-        print('localVersion    = ' + localVersion)
-        print('requiredVersion = ' + requiredVersion)
-
-    if localVersion != requiredVersion:
-        if verbose(config):
-            print('Package ' + packageName + ' in local repository is not at the required version. Update needed') 
         return (True, None)
 
     if verbose(config):
@@ -1386,24 +1369,29 @@ def downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGro
 # Install package
 ####################################################################################################
 
-def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, version, localRepositoryPath):
+def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath):
 
     if debug(config):
         print('installPackage:')
         print('    artifactId = ' + artifactId)
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
-        print('    version = ' + version)
+        print('    requiredVersion = ' + requiredVersion)
         print('    localRepositoryPath = ' + localRepositoryPath)
 
-    fileName = mavenArtifactId + '-' + version + '.' + PACKAGING
+    packageName = getPackageName(artifactId)
+
+
+    fileName = mavenArtifactId + '-' + requiredVersion + '.' + PACKAGING
 
     home = expanduser('~')
-    path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + version
+    path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + requiredVersion
     localpath = home + '/.m2/repository/' + path + '/' + fileName
 
+    
+    if verbose(config):
+        print('Installing package: ' + packageName)
     if debug(config):
-        print('installPackage:')
         print('    localpath = ' + localpath)
 
     with zipfile.ZipFile(localpath, 'r') as z:
@@ -1421,11 +1409,10 @@ def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, version, l
         print(json.dumps(localMetadata, sort_keys=True, indent=4))         
         sys.exit(3)
 
-
     #------------------------------------------------------
     # Copy the 'originalFilename' to the installed metadata
     #------------------------------------------------------
-    packageName = getPackageName(artifactId)
+    print('Updating Install metadata with "originalFilename"')    
     packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/metadata.json')
     if verbose(config):
         print('packageInfoFilename = ' + packageInfoFilename) 
@@ -1444,8 +1431,8 @@ def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, version, l
     with open(packageInfoFilename, 'w') as outfile:
         json.dump(installedMetadata, outfile, sort_keys=True, indent=4)
 
-    if debug(config):
-        print('xxxxx: Package installed metadata')
+    if verbose(config):
+        print('Package install metadata')
         print(json.dumps(installedMetadata, sort_keys = True, indent = 4))
 
 
@@ -1700,12 +1687,7 @@ def defaultTest(config, aol):
         source = BUILD_OUTPUT_MAIN_DIR + '**/*.dll'
         for file in glob.iglob(source, recursive=True):
             fileName = os.path.basename(file)
-            parentDir = os.path.dirname(file)
-            parentName = os.path.basename(parentDir)
-            parentParentDir = os.path.dirname(parentDir)
-            parentParentName = os.path.basename(parentParentDir)
-            destination = str(parentParentDir) + '/' + fileName
-            destination = BUILD_OUTPUT_TEST_DIR + parentParentName + '/' + fileName
+            destination = BUILD_OUTPUT_TEST_DIR + '/' + fileName
             shutil.copy2(file, destination)
 
     else:
