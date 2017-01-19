@@ -1198,7 +1198,7 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
     remotePackageVersion, repository = getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
     if remotePackageVersion == None:
         return (False, repository)  # Nothing to do!
-    elif installedPackageVersion == remotePackageVersion:
+    elif localPackageVersion == remotePackageVersion:
         return (False, repository)  # Nothing to do!     
     else:
         return (True, repository) 
@@ -1338,7 +1338,6 @@ def downloadArtifactFromRepository(config, repository, localRepositoryPath, file
         sys.exit(99)
 
     localMetadata = {}
-    localMetadata['version'] = version
     localMetadata['originalFilename'] = fileNameExpanded
     localMetadata['lastChecked'] = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
     writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
@@ -1387,13 +1386,15 @@ def downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGro
 # Install package
 ####################################################################################################
 
-def installPackage(config, mavenGroupId, mavenArtifactId, version):
+def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, version, localRepositoryPath):
 
     if debug(config):
         print('installPackage:')
+        print('    artifactId = ' + artifactId)
         print('    mavenGroupId = ' + mavenGroupId)
         print('    mavenArtifactId = ' + mavenArtifactId)
         print('    version = ' + version)
+        print('    localRepositoryPath = ' + localRepositoryPath)
 
     fileName = mavenArtifactId + '-' + version + '.' + PACKAGING
 
@@ -1407,6 +1408,45 @@ def installPackage(config, mavenGroupId, mavenArtifactId, version):
 
     with zipfile.ZipFile(localpath, 'r') as z:
         z.extractall(INSTALL_DIR)
+
+    localMetadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
+    lastChecked = localMetadata['lastChecked']
+
+    key = 'originalFilename'
+    if key in localMetadata:
+        originalFilename = localMetadata[key]
+    else:
+        print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
+        print('localRepositoryPath = ' + localRepositoryPath) 
+        print(json.dumps(localMetadata, sort_keys=True, indent=4))         
+        sys.exit(3)
+
+
+    #------------------------------------------------------
+    # Copy the 'originalFilename' to the installed metadata
+    #------------------------------------------------------
+    packageName = getPackageName(artifactId)
+    packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/metadata.json')
+    if verbose(config):
+        print('packageInfoFilename = ' + packageInfoFilename) 
+    
+    if not os.path.exists(packageInfoFilename):
+        if verbose(config):
+            print('Package ' + packageInfoFilename + ' not installed. Need to re-install')
+        updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
+        return (updateNeeded, True, repository)
+
+    with open(packageInfoFilename) as file:    
+        installedMetadata = json.load(file)
+
+    installedMetadata[key] = originalFilename
+
+    with open(packageInfoFilename, 'w') as outfile:
+        json.dump(installedMetadata, outfile, sort_keys=True, indent=4)
+
+    if debug(config):
+        print('xxxxx: Package installed metadata')
+        print(json.dumps(installedMetadata, sort_keys = True, indent = 4))
 
 
 ####################################################################################################
@@ -1520,7 +1560,7 @@ def defaultGenerate(config, aol):
             downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGroupId, mavenArtifactId, requiredVersion, isSnapshot)
 
         if needToInstall:
-            installPackage(config, mavenGroupId, mavenArtifactId, requiredVersion)
+            installPackage(config, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath)
 
 
 ####################################################################################################
