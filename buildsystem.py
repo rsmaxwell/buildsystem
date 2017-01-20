@@ -1569,10 +1569,15 @@ def defaultCompile(config, aol):
 
     if aol.operatingSystem == 'windows':
         makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
+        dist = os.path.relpath(BUILD_OUTPUT_MAIN_DIR, DIST_DIR)
+
         env = getBuildInfo(config, aol, os.environ)
         env['BUILD_TYPE'] = 'static'
         env['SOURCE'] = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
-        env['OUTPUT'] = '.'
+        env['OUTPUT'] = '.'        
+        env['DIST'] = dist
+        env['INSTALL'] = INSTALL_DIR
+
         p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
         checkProcessCompletesOk(p, 'Error: Compile failed')
 
@@ -1606,11 +1611,14 @@ def defaultTestCompile(config, aol):
     if aol.operatingSystem == 'windows':
         makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
+        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
 
         env = os.environ
         env['BUILD_TYPE'] = 'static'
         env['SOURCE'] = source
         env['OUTPUT'] = '.'
+        env['DIST'] = dist
+        env['INSTALL'] = INSTALL_DIR
 
         args = ['make', '-f', makefile, 'clean', 'all']
 
@@ -1889,7 +1897,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
             distribution(config, aol)
 
     if 'testCompile' in goals:
-        print('goal = test-compile')
+        print('goal = testCompile')
         if testCompile == None:
             clean = defaultTestCompile(config, aol)
         else:
