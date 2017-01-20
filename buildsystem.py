@@ -1030,14 +1030,41 @@ def checkUpdatePolicy(config, repository, lastChecked):
     return checkRemoteRepository
 
 
-#
+
+####################################################################################################
+# getVersion package version in remote repository 
+####################################################################################################
+def getRemotePackageVersionFromRemoteMetadata(config, artifactId, requiredVersion, mavenArtifactId, remoteMetadata):
+    
+    if isSnapshot(requiredVersion):
+        key = 'timestamp'
+        if not key in remoteMetadata:
+            print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
+            print('localRepositoryPath = ' + localRepositoryPath) 
+            print(json.dumps(remoteMetadata, sort_keys=True, indent=4))         
+            sys.exit(3)
+
+        key = 'buildNumber'
+        if not key in remoteMetadata:
+            print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
+            print('localRepositoryPath = ' + localRepositoryPath) 
+            print(json.dumps(remoteMetadata, sort_keys=True, indent=4))         
+            sys.exit(3)
+
+        remotePackageVersion = mavenArtifactId + '-' + requiredVersion.replace('SNAPSHOT', remoteMetadata.get('timestamp')) + '-' + str(remoteMetadata.get('buildNumber'))
+    else:
+        remotePackageVersion = mavenArtifactId + '-' + requiredVersion
+        
+    return remotePackageVersion
+        
+        
 ####################################################################################################
 # getVersion package version in remote repository 
 ####################################################################################################
 def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
 
     if debug(config):
-        print('checkSnapshotIsUpToDate:')
+        print('getRemotePackageVersion:')
         
     packageName = getPackageName(artifactId)
 
@@ -1073,7 +1100,7 @@ def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, m
             break
 
         if verbose(config):
-            print('Snapshot not found in this Repository')
+            print('Package not found in this Repository')
 
     if not found:
         print('Package ' + packageName + ' not found in any repository')
@@ -1088,14 +1115,7 @@ def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, m
         print('Package metadata for the remote repository')
         print(json.dumps(remoteMetadata, sort_keys = True, indent = 4))
 
-    key = 'originalFilename'
-    if key in localMetadata:
-        remotePackageVersion = localMetadata[key]
-    else:
-        print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('localRepositoryPath = ' + localRepositoryPath) 
-        print(json.dumps(localMetadata, sort_keys=True, indent=4))         
-        sys.exit(3)
+    remotePackageVersion = getRemotePackageVersionFromRemoteMetadata(config, artifactId, requiredVersion, mavenArtifactId, remoteMetadata)
 
     if verbose(config):
         print('remotePackageVersion = ' + remotePackageVersion)
@@ -1177,6 +1197,9 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
         print('localRepositoryPath = ' + localRepositoryPath) 
         print(json.dumps(localMetadata, sort_keys=True, indent=4))         
         sys.exit(3)
+
+    if verbose(config):
+        print('localPackageVersion = ' + localPackageVersion)
 
     remotePackageVersion, repository = getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
     if remotePackageVersion == None:
@@ -1431,7 +1454,7 @@ def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, requiredVe
     with open(packageInfoFilename, 'w') as outfile:
         json.dump(installedMetadata, outfile, sort_keys=True, indent=4)
 
-    if verbose(config):
+    if debug(config):
         print('Package install metadata')
         print(json.dumps(installedMetadata, sort_keys = True, indent = 4))
 
