@@ -535,7 +535,7 @@ def getServersConfigurationFromSettingsFile(config):
 
 def rebuildMetadata(config, filepath):
 
-    if verbose(config):
+    if debug(config):
         print('rebuildMetadata:')
         print('    filepath =', filepath)
 
@@ -562,11 +562,12 @@ def rebuildMetadata(config, filepath):
     r = requests.delete(url, auth=(username, password))
     statusCode = r.status_code
 
-    if verbose(config):
-        print('    statusCode = ' + str(statusCode) + ' : ' + http.client.responses[statusCode])
-
     if statusCode > 400:
+        print('    statusCode = ' + str(statusCode) + ' : ' + http.client.responses[statusCode])
         sys.exit(3)
+
+    if debug(config):
+        print('    statusCode = ' + str(statusCode) + ' : ' + http.client.responses[statusCode])
 
     return statusCode
 
@@ -577,7 +578,7 @@ def rebuildMetadata(config, filepath):
 
 def uploadFile(config, file, repositoryID, url):
 
-    if verbose(config):
+    if debug(config):
         print('uploadFile:')
         print('    repositoryID =', repositoryID)
         print('    url =', url)
@@ -599,7 +600,7 @@ def uploadFile(config, file, repositoryID, url):
     r = requests.post(url, data=file, auth=(server['username'], server['password']))
     statusCode = r.status_code
 
-    if verbose(config):
+    if debug(config):
         print('    statusCode = ' + str(statusCode) + ' : ' + http.client.responses[statusCode])
 
     if statusCode >= 400:
@@ -614,7 +615,7 @@ def uploadFile(config, file, repositoryID, url):
 
 def uploadString(config, string, repositoryID, url):
 
-    if verbose(config):
+    if debug(config):
         print('uploadString')
         print('    repositoryID =', repositoryID)
         print('    string =', string)
@@ -630,7 +631,7 @@ def uploadString(config, string, repositoryID, url):
 
 def uploadFileAndHashes(config, file, filePath, fileName, packaging):
 
-    if verbose(config):
+    if debug(config):
         print('uploadFileAndHashes(1):')
         print('    filePath =', filePath)
         print('    fileName =', fileName)
@@ -688,6 +689,14 @@ def uploadArtifact(config, mavenGroupId, mavenArtifactId, version, filename):
         print('    mavenArtifactId =', mavenArtifactId)
         print('    version =', version)
         print('    filename =', filename)
+
+    if verbose(config):
+        data = {}
+        data['mavenGroupId'] = mavenGroupId
+        data['mavenArtifactId'] = mavenArtifactId
+        data['version'] = version
+        print('Uploading artifact')
+        print(json.dumps(data, sort_keys = True, indent = 4))
 
     snap = version.endswith('SNAPSHOT')
 
@@ -1150,7 +1159,7 @@ def getLocalPackageVersion(config, artifactId, requiredVersion, mavenGroupId, ma
 
     key = 'originalFilename'
     if key in localMetadata:
-        localVersion = localMetadata[key]
+        localPackageVersion = localMetadata[key]
     else:
         print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
         print('localRepositoryPath = ' + localRepositoryPath) 
@@ -1593,22 +1602,22 @@ def defaultCompile(config, aol):
 
     if aol.operatingSystem == 'windows':
         makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
-        dist = os.path.relpath(BUILD_OUTPUT_MAIN_DIR, DIST_DIR)
+        source = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
+        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_MAIN_DIR)
 
         env = getBuildInfo(config, aol, os.environ)
         env['BUILD_TYPE'] = 'static'
-        env['SOURCE'] = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
-        env['OUTPUT'] = '.'        
+        env['SOURCE'] = source
         env['DIST'] = dist
         env['INSTALL'] = INSTALL_DIR
 
         p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
-        checkProcessCompletesOk(p, 'Error: Compile failed')
+        checkProcessCompletesOk(config, p, 'Error: Compile failed')
 
 
     else:     # Linux or MinGW or CygWin
         p = subprocess.Popen(['make', 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_SOURCE_MAIN_DIR)
-        checkProcessCompletesOk(p, 'Error: Compile failed')
+        checkProcessCompletesOk(config, p, 'Error: Compile failed')
 
 
 ####################################################################################################
@@ -1779,6 +1788,7 @@ def defaultDeploy(config, aol):
 
     reposArtifactId = artifactId.replace('-', '/')
     reposArtifactId = reposArtifactId.replace('.', '-')
+    reposArtifactId = artifactId.replace('/', '.')
 
     mavenGroupId = groupId + '.' + reposArtifactId
     mavenArtifactId = artifactId + '-' + str(aol)
