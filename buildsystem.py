@@ -1788,7 +1788,7 @@ def defaultDeploy(config, aol):
 
     reposArtifactId = artifactId.replace('-', '/')
     reposArtifactId = reposArtifactId.replace('.', '-')
-    reposArtifactId = artifactId.replace('/', '.')
+    reposArtifactId = reposArtifactId.replace('/', '.')
 
     mavenGroupId = groupId + '.' + reposArtifactId
     mavenArtifactId = artifactId + '-' + str(aol)
