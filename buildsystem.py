@@ -1634,6 +1634,8 @@ def defaultDistribution(config, aol):
 
 def defaultTestCompile(config, aol):
 
+    print('defaultTestCompile:')
+
     if not os.path.exists(SRC_TEST_DIR):
         if (verbose(config)):
             print('There is no Test Source directory')
@@ -1649,7 +1651,6 @@ def defaultTestCompile(config, aol):
         env = os.environ
         env['BUILD_TYPE'] = 'static'
         env['SOURCE'] = source
-        env['OUTPUT'] = '.'
         env['DIST'] = dist
         env['INSTALL'] = INSTALL_DIR
 
@@ -1657,6 +1658,7 @@ def defaultTestCompile(config, aol):
 
         if (verbose(config)):
             print('Args = ' + str(args))
+            print('cwd = ' + BUILD_OUTPUT_TEST_DIR)
 
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
@@ -1678,17 +1680,26 @@ def defaultTestCompile(config, aol):
 
     else:     # Linux or MinGW or CygWin
         makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
+        makefile = makefile.replace('\\', '/')
+
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
+        source = source.replace('\\', '/')
+
+        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
+        dist = dist.replace('\\', '/')
 
         env = os.environ
         env['BUILD_TYPE'] = 'normal'
         env['SOURCE'] = source
+        env['DIST'] = dist
         env['OUTPUT'] = '.'
+        env['INSTALL'] = INSTALL_DIR
 
         args = ['make', '-f', makefile, 'clean', 'all']
 
         if (verbose(config)):
             print('Args = ' + str(args))
+            print('cwd = ' + BUILD_OUTPUT_TEST_DIR)
 
         p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
