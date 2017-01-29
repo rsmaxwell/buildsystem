@@ -33,6 +33,7 @@ NONE = 0
 INFO = 1
 VERBOSE = 2
 DEBUG = 3
+DEBUG2 = 4
 
 SRC_MAIN_DIR                             = './src/main/'
 SRC_MAIN_C_DIR                           = './src/main/c/'
@@ -80,7 +81,7 @@ PACKAGING = 'zip'
 
 class AOL:
 
-    def __init__(self, config):
+    def __init__(self):
 
         if platform.system().startswith("Linux"):
             self.operatingSystem = 'linux'
@@ -155,32 +156,234 @@ class AOL:
 
 
 ####################################################################################################
+# Get the Install dir for MinGW
+####################################################################################################
+
+def unzip(config, aol, zipFile, extractDir):
+
+    if debug2(config):
+        print('unzip:')
+        print('    zipFile = ' + zipFile)
+        print('    extractDir = ' + extractDir)
+
+    if not aol.linker.startswith('mingw'):
+        with zipfile.ZipFile(zipFile, 'r') as z:
+            z.extractall(extractDir)
+    else:
+        args = ['bash', '-c', 'unzip ' + zipFile + ' -d ' + extractDir]
+
+        if debug(config):
+            print('Args = ' + str(args))
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+
+        if (returncode != 0):
+            print('Error: subprocess.Popen failed')
+
+        if (returncode != 0) or (debug(config)):
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+        if (returncode != 0):
+            sys.exit(1)    
+
+
+####################################################################################################
+# Test if a file exists
+####################################################################################################
+def exists(config, aol, filename):
+
+    if debug2(config):
+        print('exists:')
+        print('    filename = ' + filename)
+
+    if not aol.linker.startswith('mingw'):
+        return os.path.exists(packageInfoFilename)
+    else:
+        args = ['bash', '-c', 'ls ' + filename]
+
+        if debug(config):
+            print('Args = ' + str(args))
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+
+        if debug2(config):
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+        return (returncode == 0)
+
+####################################################################################################
 # Make a directory
 ####################################################################################################
 
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
+def mkdir_p(config, aol, path):
+
+    if debug2(config):
+        print('unzip:')
+        print('    zipFile = ' + zipFile)
+        print('    extractDir = ' + extractDir)
+
+    if not aol.linker.startswith('mingw'):
+        try:
+            os.makedirs(path)
+        except OSError as exc:  # Python >2.5
+            if exc.errno == errno.EEXIST and os.path.isdir(path):
+                pass
+            else:
+                raise
+    else:
+        args = ['bash', '-c', 'mkdir -p ' + path]
+
+        if debug(config):
+            print('Args = ' + str(args))
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+
+        if (returncode != 0):
+            print('Error: subprocess.Popen failed')
+
+        if (returncode != 0) or (debug(config)):
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+        if (returncode != 0):
+            sys.exit(1)       
 
 
-#
 ####################################################################################################
 # Delete a directory
 #
 # Windows sometimes defers the delete while it saves metadata.
 # So we 'rename' the directory first (which is immediate), then delete the directory.
-# This avoids a 'permission' problem when trying to create the directory immediatly afterwards
+# This avoids a 'permission' problem when trying to create the directory immediately afterwards
 ####################################################################################################
 
-def rmdir(directory, temp):
-    if os.path.exists(directory):
-        os.rename(directory, temp)
-        shutil.rmtree(temp, ignore_errors=True)
+def rmdir(config, aol, directory, temp):
+
+    if debug2(config):
+        print('rmdir:')
+        print('    directory = ' + directory)
+        print('    temp = ' + temp)
+
+    if not aol.linker.startswith('mingw'):
+        if os.path.exists(directory):
+            os.rename(directory, temp)
+            shutil.rmtree(temp, ignore_errors=True)
+    else:
+        args = ['bash', '-c', 'rm -rf ' + directory]
+
+        if debug(config):
+            print('Args = ' + str(args))
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+
+        if (returncode != 0):
+            print('Error: subprocess.Popen failed')
+
+        if (returncode != 0) or (debug(config)):
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+        if (returncode != 0):
+            sys.exit(1) 
+
+
+####################################################################################################
+# Expand user home
+####################################################################################################
+def myExpandUserHome(config, aol):
+
+    if debug2(config):
+        print('myExpandUserHome:')
+
+    if not aol.linker.startswith('mingw'):
+        return expanduser('~')
+    else:
+        args = ['bash', '-c', 'echo $HOME']
+
+        if debug(config):
+            print('Args = ' + str(args))
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+
+        if (returncode != 0):
+            print('Error: subprocess.Popen failed')
+
+        if (returncode != 0) or (debug(config)):
+            print('---------[ stdout ]-----------------------------------------------------------------')
+            print(stdout.decode('utf-8'))
+            print('---------[ stderr ]-----------------------------------------------------------------')
+            print(stderr.decode('utf-8'))
+            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+        if (returncode != 0):
+            sys.exit(1) 
+ 
+        result = stdout.decode('utf-8').strip()
+        print('myExpandUserHome = ' + result)
+        return result
+
+
+####################################################################################################
+# MingW path
+####################################################################################################
+def mingwToNativePath(config, aol, pathname):
+
+    if debug(config):
+        print('mingwToNativePath:')
+
+    fn = os.path.basename(pathname)
+    dn = os.path.dirname(pathname)
+
+    args = ['bash', '-c', "{ cd " + dn + " && pwd -W; }"]
+
+    if debug(config):
+        print('Args = ' + str(args))
+        print('Args[2] = ' + args[2])
+
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    returncode = p.wait()
+
+    if (returncode != 0):
+        print('Error: subprocess.Popen failed')
+
+    if (returncode != 0) or (debug(config)):
+        print('---------[ stdout ]-----------------------------------------------------------------')
+        print(stdout.decode('utf-8'))
+        print('---------[ stderr ]-----------------------------------------------------------------')
+        print(stderr.decode('utf-8'))
+        print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+    if (returncode != 0):
+        sys.exit(1) 
+
+    result = stdout.decode('utf-8').strip() + '/' + fn
+    result = result .replace('/', '\\')
+    return result
 
 
 ####################################################################################################
@@ -228,6 +431,9 @@ def verbose(config):
 def debug(config):
     return config['level'] >= DEBUG
 
+def debug2(config):
+    return config['level'] >= DEBUG2
+
 ####################################################################################################
 # Calculate MD5 hash of a file
 ####################################################################################################
@@ -272,6 +478,18 @@ def which(program):
                 return exe_file
 
     return None
+
+
+#
+####################################################################################################
+# Get the Root directory
+####################################################################################################
+def get_sys_exec_root_or_drive():
+    path = sys.executable
+    while os.path.split(path)[1]:
+        path = os.path.split(path)[0]
+    return path
+
 
 ####################################################################################################
 # inplace_change
@@ -459,23 +677,31 @@ def getSnapshotInfoFromDistributionMetadata(config, mavenGroupId, mavenArtifactI
 # Get the server credentials from the maven xml settings file
 ####################################################################################################
 
-def getServersConfigurationFromSettingsFile(config):
+def getServersConfigurationFromSettingsFile(config, aol):
 
     if verbose(config):
         print('getServersConfigurationFromSettingsFile:')
 
-    home = expanduser('~')
-    settingsfile = os.path.abspath(home + '/.m2/settings.xml')
+    home = myExpandUserHome(config, aol)
+    settingsfile = home + '/.m2/settings.xml'
 
-    if os.path.exists(settingsfile):
-        if verbose(config):
-            print('Found settings file = ' + settingsfile)
-    else:
+    if verbose(config):
+        print('settingsfile  = ' + settingsfile)
+
+    if not exists(config, aol, settingsfile):
         print('Settings file NOT found = ' + settingsfile)
         sys.exit(3)
 
+    if aol.linker.startswith('ming'):
+        settingsfile2 = mingwToNativePath(config, aol, settingsfile)
+    else:
+        settingsfile2 = settingsfile
+
+    if verbose(config):
+        print('settingsfile2 = ' + settingsfile2)
+
     # instead of ET.fromstring(xml)
-    it = ET.iterparse(settingsfile)
+    it = ET.iterparse(settingsfile2)
     for _, el in it:
         if '}' in el.tag:
             el.tag = el.tag.split('}', 1)[1]  # strip all namespaces
@@ -853,7 +1079,7 @@ def getBuildInfo(config, aol, environ):
 
 
     directory = BUILD_OUTPUT_MAIN_METADATA_DIR + 'git.status/'
-    mkdir_p(directory)
+    mkdir_p(config, aol, directory)
 
     with open(directory + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
@@ -881,7 +1107,7 @@ def getBuildInfo(config, aol, environ):
     returncode = p.wait()
 
     directory = BUILD_OUTPUT_MAIN_METADATA_DIR + 'git.diff/'
-    mkdir_p(directory)
+    mkdir_p(config, aol, directory)
 
     with open(directory + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
@@ -1223,7 +1449,7 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
 # Is the installed package up-to-date compared to the remote repository
 ####################################################################################################
 
-def checkVersionOfInstalledPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
+def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
 
     if debug(config):
         print('checkVersionOfInstalledPackage:')
@@ -1233,17 +1459,25 @@ def checkVersionOfInstalledPackage(config, artifactId, requiredVersion, mavenGro
     #---------------------------------------------------------------------------
     # Is the version of the installed package the same as the requiredVersion
     #---------------------------------------------------------------------------
-    packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/metadata.json')
+    packageInfoFilename = INSTALL_DIR + 'share/' + packageName + '/metadata.json'
     if verbose(config):
         print('packageInfoFilename = ' + packageInfoFilename) 
     
-    if not os.path.exists(packageInfoFilename):
+    if not exists(config, aol, packageInfoFilename):
         if verbose(config):
             print('Package ' + packageInfoFilename + ' not installed. Need to re-install')
         updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
         return (updateNeeded, True, repository)
 
-    with open(packageInfoFilename) as file:    
+    if aol.linker.startswith('ming'):
+        packageInfoFilename2 = mingwToNativePath(config, aol, packageInfoFilename)
+    else:
+        packageInfoFilename2 = packageInfoFilename
+
+    if verbose(config):
+        print('packageInfoFilename2 = ' + packageInfoFilename2)
+    
+    with open(packageInfoFilename2) as file:    
         installedMetadata = json.load(file)
 
     if debug(config):
@@ -1278,7 +1512,8 @@ def checkVersionOfInstalledPackage(config, artifactId, requiredVersion, mavenGro
         installedPackageVersion = installedMetadata['originalFilename']
     else:
         print('Error: The installed metadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('packageInfoFilename = ' + packageInfoFilename) 
+        print('packageInfoFilename  = ' + packageInfoFilename) 
+        print('packageInfoFilename2 = ' + packageInfoFilename2)
         print(json.dumps(installedMetadata, sort_keys=True, indent=4))         
         sys.exit(3)
 
@@ -1401,7 +1636,7 @@ def downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGro
 # Install package
 ####################################################################################################
 
-def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath):
+def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath):
 
     if debug(config):
         print('installPackage:')
@@ -1420,14 +1655,12 @@ def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, requiredVe
     path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + requiredVersion
     localpath = home + '/.m2/repository/' + path + '/' + fileName
 
-    
     if verbose(config):
         print('Installing package: ' + packageName)
     if debug(config):
         print('    localpath = ' + localpath)
 
-    with zipfile.ZipFile(localpath, 'r') as z:
-        z.extractall(INSTALL_DIR)
+    unzip(config, aol, localpath, INSTALL_DIR)
 
     localMetadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
     lastChecked = localMetadata['lastChecked']
@@ -1444,23 +1677,30 @@ def installPackage(config, artifactId, mavenGroupId, mavenArtifactId, requiredVe
     #------------------------------------------------------
     # Copy the 'originalFilename' to the installed metadata
     #------------------------------------------------------
-    print('Updating Install metadata with "originalFilename"')    
-    packageInfoFilename = os.path.abspath(INSTALL_DIR + 'share/' + packageName + '/metadata.json')
+    packageInfoFilename = INSTALL_DIR + 'share/' + packageName + '/metadata.json'
     if verbose(config):
         print('packageInfoFilename = ' + packageInfoFilename) 
     
-    if not os.path.exists(packageInfoFilename):
+    if not exists(config, aol, packageInfoFilename):
         if verbose(config):
             print('Package ' + packageInfoFilename + ' not installed. Need to re-install')
         updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
         return (updateNeeded, True, repository)
 
-    with open(packageInfoFilename) as file:    
+    if aol.linker.startswith('ming'):
+        packageInfoFilename2 = mingwToNativePath(config, aol, packageInfoFilename)
+    else:
+        packageInfoFilename2 = packageInfoFilename
+
+    if verbose(config):
+        print('packageInfoFilename2 = ' + packageInfoFilename2)
+
+    with open(packageInfoFilename2) as file:    
         installedMetadata = json.load(file)
 
     installedMetadata[key] = originalFilename
 
-    with open(packageInfoFilename, 'w') as outfile:
+    with open(packageInfoFilename2, 'w') as outfile:
         json.dump(installedMetadata, outfile, sort_keys=True, indent=4)
 
     if debug(config):
@@ -1531,7 +1771,7 @@ def getVisualStudioName():
 ####################################################################################################
 
 def defaultClean(config, aol):
-    rmdir(BUILD_DIR, BUILDTEMP_DIR)
+    rmdir(config, aol, BUILD_DIR, BUILDTEMP_DIR)
 
 
 ####################################################################################################
@@ -1574,13 +1814,13 @@ def defaultGenerate(config, aol):
         fileName = mavenArtifactId + '-' + requiredVersion
         isSnapshot = requiredVersion.endswith('SNAPSHOT')
 
-        needToDownload, needToInstall, repository = checkVersionOfInstalledPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
+        needToDownload, needToInstall, repository = checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
 
         if needToDownload:
             downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGroupId, mavenArtifactId, requiredVersion, isSnapshot)
 
         if needToInstall:
-            installPackage(config, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath)
+            installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath)
 
 
 ####################################################################################################
@@ -1598,7 +1838,7 @@ def defaultConfigure(config, aol):
 def defaultCompile(config, aol):
     print('defaultCompile')
 
-    mkdir_p(BUILD_OUTPUT_MAIN_DIR)
+    mkdir_p(config, aol, BUILD_OUTPUT_MAIN_DIR)
 
     if aol.operatingSystem == 'windows':
         makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
@@ -1641,7 +1881,7 @@ def defaultTestCompile(config, aol):
             print('There is no Test Source directory')
         return
 
-    mkdir_p(BUILD_OUTPUT_TEST_DIR)
+    mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
 
     if aol.operatingSystem == 'windows':
         makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
@@ -1689,10 +1929,9 @@ def defaultTestCompile(config, aol):
         dist = dist.replace('\\', '/')
 
         env = os.environ
-        env['BUILD_TYPE'] = 'normal'
+        env['BUILD_TYPE'] = 'static'
         env['SOURCE'] = source
         env['DIST'] = dist
-        env['OUTPUT'] = '.'
         env['INSTALL'] = INSTALL_DIR
 
         args = ['make', '-f', makefile, 'clean', 'all']
@@ -1860,6 +2099,12 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
         for property in args.properties:
             print('    ' + property)
 
+
+    ####################################################################################################
+    # Find the Architecture-OperatingSystem-Linker (AOL) 
+    ####################################################################################################
+    aol = AOL()
+
     ####################################################################################################
     # Read Configuration files
     ####################################################################################################
@@ -1867,7 +2112,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     with open(args.file) as buildfile:
         config.update(json.load(buildfile))
 
-    servers = getServersConfigurationFromSettingsFile(config)
+    servers = getServersConfigurationFromSettingsFile(config, aol)
     config['servers'] = servers
 
     properties = config['properties']
@@ -1891,16 +2136,15 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     ####################################################################################################
     # Init
     ####################################################################################################
-
-    aol = AOL(config)
-
     global INSTALL_DIR
+    
     if aol.operatingSystem == 'windows':
         INSTALL_DIR = INSTALL_DIR_WINDOWS 
     else:
         INSTALL_DIR = INSTALL_DIR_LINUX 
+    
+    mkdir_p(config, aol, INSTALL_DIR)
 
-    mkdir_p(INSTALL_DIR)
 
     ####################################################################################################
     # Call the build processes
