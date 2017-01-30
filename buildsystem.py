@@ -170,7 +170,7 @@ def unzip(config, aol, zipFile, extractDir):
         with zipfile.ZipFile(zipFile, 'r') as z:
             z.extractall(extractDir)
     else:
-        args = ['bash', '-c', 'unzip ' + zipFile + ' -d ' + extractDir]
+        args = ['bash', '-c', 'unzip -o ' + zipFile + ' -d ' + extractDir]
 
         if debug(config):
             print('Args = ' + str(args))
@@ -230,9 +230,8 @@ def exists(config, aol, filename):
 def mkdir_p(config, aol, path):
 
     if debug2(config):
-        print('unzip:')
-        print('    zipFile = ' + zipFile)
-        print('    extractDir = ' + extractDir)
+        print('mkdir_p:')
+        print('    path = ' + path)
 
     if not aol.linker.startswith('mingw'):
         try:
@@ -1511,11 +1510,12 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
     if key in installedMetadata:
         installedPackageVersion = installedMetadata['originalFilename']
     else:
-        print('Error: The installed metadata for ' + packageName + ' does not contain the key "' + key + '"')
+        print('The installed metadata for ' + packageName + ' does not contain the key "' + key + '"')
         print('packageInfoFilename  = ' + packageInfoFilename) 
         print('packageInfoFilename2 = ' + packageInfoFilename2)
         print(json.dumps(installedMetadata, sort_keys=True, indent=4))         
-        sys.exit(3)
+        print('The package needs re-installing') 
+        return (False, True, None) 
 
     remotePackageVersion, repository = getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
     if remotePackageVersion == None:
@@ -1982,8 +1982,8 @@ def defaultTest(config, aol):
             shutil.copy2(file, destination)
 
     else:
-        executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '**/*'):
+        executable = stat.S_IEXEC
+        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '**/*', recursive=True):
             if os.path.isfile(filename):
                 st = os.stat(filename)
                 mode = st.st_mode
