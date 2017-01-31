@@ -1461,7 +1461,7 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
     packageInfoFilename = INSTALL_DIR + 'share/' + packageName + '/metadata.json'
     if verbose(config):
         print('packageInfoFilename = ' + packageInfoFilename) 
-    
+
     if not exists(config, aol, packageInfoFilename):
         if verbose(config):
             print('Package ' + packageInfoFilename + ' not installed. Need to re-install')
@@ -1475,7 +1475,7 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
 
     if verbose(config):
         print('packageInfoFilename2 = ' + packageInfoFilename2)
-    
+
     with open(packageInfoFilename2) as file:    
         installedMetadata = json.load(file)
 
@@ -1651,7 +1651,7 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
 
     fileName = mavenArtifactId + '-' + requiredVersion + '.' + PACKAGING
 
-    home = expanduser('~')
+    home = myExpandUserHome(config, aol)
     path = mavenGroupId.replace('.', '/') + '/' + mavenArtifactId + '/' + requiredVersion
     localpath = home + '/.m2/repository/' + path + '/' + fileName
 
@@ -1686,7 +1686,7 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
             print('Package ' + packageInfoFilename + ' not installed. Need to re-install')
         updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
         return (updateNeeded, True, repository)
-
+            
     if aol.linker.startswith('ming'):
         packageInfoFilename2 = mingwToNativePath(config, aol, packageInfoFilename)
     else:
