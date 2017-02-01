@@ -1744,17 +1744,8 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     if verbose(config):
         print('packageDir = ' + packageDir) 
     
-<<<<<<< a5e121b07dc03c442e9333c0a32861a2d74fa02e
-    if not exists(config, aol, packageInfoFilename):
-        if verbose(config):
-            print('Package ' + packageInfoFilename + ' not installed. Need to re-install')
-        updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
-        return (updateNeeded, True, repository)
-            
-=======
     mkdir_p(config, aol, packageDir)
 
->>>>>>> update
     if aol.linker.startswith('ming'):
         packageDir2 = mingwToNativePath(config, aol, packageDir)
     else:
@@ -1783,7 +1774,12 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     #------------------------------------------------------
     # Save a list of the zipfile contents (so the package can be un-installed)
     #------------------------------------------------------
-    with zipfile.ZipFile(localpath, 'r') as z:
+    if aol.linker.startswith('ming'):
+        localpath2 = mingwToNativePath(config, aol, localpath)
+    else:
+        localpath2 = localpath
+
+    with zipfile.ZipFile(localpath2, 'r') as z:
         list = z.namelist()
 
     contentsFile2 = packageDir2 + '/contents.txt'
