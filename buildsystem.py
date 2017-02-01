@@ -51,13 +51,12 @@ BUILD_SOURCE_MAIN_DIR                    = './build/source/main/'
 BUILD_SOURCE_TEST_DIR                    = './build/source/test/'
 BUILD_TEMP_DIR                           = './build/temp/'
 BUILD_OUTPUT_MAIN_DIR                    = './build/output/main/'
-BUILD_OUTPUT_MAIN_METADATA_DIR           = './build/output/main/metadata/'
 BUILD_OUTPUT_TEST_DIR                    = './build/output/test/'
 BUILD_ARTIFACT_DIR                       = './build/artifact/'
                                        
 DIST_DIR                                 = './build/dist/'
 DISTTEMP_DIR                             = './build/dist.temp/'
-DIST_SHARE_DIR                           = './build/dist/share/'
+DIST_PACKAGES_DIR                        = './build/dist/packages/'
 DIST_BIN_DIR                             = './build/dist/bin/'
 DIST_INCLUDE_DIR                         = './build/dist/include/'
 DIST_LIB_DIR                             = './build/dist/lib/'
@@ -153,6 +152,7 @@ class AOL:
 
     def __str__(self):
          return self.architecture + '-' + self.operatingSystem + '-' + self.linker
+
 
 
 ####################################################################################################
@@ -1047,10 +1047,17 @@ def copySnapshot(config, localpath, fileNameExpanded, fileName):
 # Add Git information to an environment list
 ####################################################################################################
 
-def getBuildInfo(config, aol, environ):
+def writeCompileTimeMetadata(config, aol):
 
-    if (environ == None):
-        environ = {}
+    if verbose(config):
+        print('writeCompileTimeMetadata')
+
+    artifactId = config["artifactId"]
+    packageName = artifactId.split('-')[0]
+    packageDir = DIST_PACKAGES_DIR + packageName + '/'
+
+    if verbose(config):
+        print('packageDir = ' + packageDir)
 
     gitStatus = subprocess.check_output("git status", shell=True).decode('utf-8').strip()
     gitOrigin = subprocess.check_output("git config --get remote.origin.url", shell=True).decode('utf-8').strip()
@@ -1077,7 +1084,7 @@ def getBuildInfo(config, aol, environ):
     returncode = p.wait()
 
 
-    directory = BUILD_OUTPUT_MAIN_METADATA_DIR + 'git.status/'
+    directory = packageDir + 'git.status/'
     mkdir_p(config, aol, directory)
 
     with open(directory + 'stdout.txt', "w") as text_file:
@@ -1105,7 +1112,7 @@ def getBuildInfo(config, aol, environ):
     stdout, stderr = p.communicate()
     returncode = p.wait()
 
-    directory = BUILD_OUTPUT_MAIN_METADATA_DIR + 'git.diff/'
+    directory = packageDir + 'git.diff/'
     mkdir_p(config, aol, directory)
 
     with open(directory + 'stdout.txt', "w") as text_file:
@@ -1125,10 +1132,9 @@ def getBuildInfo(config, aol, environ):
     data['datetime'] = time_formatted
     data['version'] = version
 
-    with open(BUILD_OUTPUT_MAIN_METADATA_DIR + 'metadata.json', "w") as outfile:
+    with open(packageDir + 'metadata.json', "w") as outfile:
         json.dump(data, outfile, sort_keys = True, indent = 4)
 
-    return environ
 
     
 ####################################################################################################
@@ -1458,7 +1464,7 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
     #---------------------------------------------------------------------------
     # Is the version of the installed package the same as the requiredVersion
     #---------------------------------------------------------------------------
-    packageInfoFilename = INSTALL_DIR + 'share/' + packageName + '/metadata.json'
+    packageInfoFilename = INSTALL_DIR + 'packages/' + packageName + '/metadata.json'
     if verbose(config):
         print('packageInfoFilename = ' + packageInfoFilename) 
 
@@ -1631,6 +1637,62 @@ def downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGro
 
     return repository
 
+#
+####################################################################################################
+# InInstall package
+####################################################################################################
+
+def unInstallPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath):
+
+    if debug(config):
+        print('unInstallPackage:')
+        print('    artifactId = ' + artifactId)
+        print('    mavenGroupId = ' + mavenGroupId)
+        print('    mavenArtifactId = ' + mavenArtifactId)
+        print('    requiredVersion = ' + requiredVersion)
+        print('    localRepositoryPath = ' + localRepositoryPath)
+
+    packageName = getPackageName(artifactId)
+
+
+
+
+    packageDir = INSTALL_DIR + 'packages/' + packageName
+
+    if verbose(config):
+        print('packageDir = ' + packageDir) 
+
+    mkdir_p(config, aol, packageDir)
+
+    if aol.linker.startswith('ming'):
+        packageDir2 = mingwToNativePath(config, aol, packageDir)
+    else:
+        packageDir2 = packageDir
+
+    packageInfoFilename2 = packageDir2 + '/metadata.json'
+
+    if verbose(config):
+        print('packageInfoFilename2 = ' + packageInfoFilename2)
+
+    contentsFile2 = packageDir2 + '/contents.txt'
+
+    if verbose(config):
+        print('contentsFile2 = ' + contentsFile2)
+
+    if os.path.exists(contentsFile2):
+        print('contentsFile2 = FOUND')
+        with open(contentsFile2) as f:
+            content = f.readlines()
+
+        content = [x.strip() for x in content]
+        for item in content:
+            print('-----' + item)
+
+    else:
+        print('contentsFile2 = NOT Found')
+
+
+
 
 ####################################################################################################
 # Install package
@@ -1677,26 +1739,37 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     #------------------------------------------------------
     # Copy the 'originalFilename' to the installed metadata
     #------------------------------------------------------
-    packageInfoFilename = INSTALL_DIR + 'share/' + packageName + '/metadata.json'
+    packageDir = INSTALL_DIR + 'packages/' + packageName
+
     if verbose(config):
-        print('packageInfoFilename = ' + packageInfoFilename) 
+        print('packageDir = ' + packageDir) 
     
+<<<<<<< a5e121b07dc03c442e9333c0a32861a2d74fa02e
     if not exists(config, aol, packageInfoFilename):
         if verbose(config):
             print('Package ' + packageInfoFilename + ' not installed. Need to re-install')
         updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
         return (updateNeeded, True, repository)
             
+=======
+    mkdir_p(config, aol, packageDir)
+
+>>>>>>> update
     if aol.linker.startswith('ming'):
-        packageInfoFilename2 = mingwToNativePath(config, aol, packageInfoFilename)
+        packageDir2 = mingwToNativePath(config, aol, packageDir)
     else:
-        packageInfoFilename2 = packageInfoFilename
+        packageDir2 = packageDir
+
+    packageInfoFilename2 = packageDir2 + '/metadata.json'
 
     if verbose(config):
         print('packageInfoFilename2 = ' + packageInfoFilename2)
 
-    with open(packageInfoFilename2) as file:    
-        installedMetadata = json.load(file)
+    if os.path.exists(packageInfoFilename2):
+        with open(packageInfoFilename2) as file:    
+            installedMetadata = json.load(file)
+    else:
+        installedMetadata = {}
 
     installedMetadata[key] = originalFilename
 
@@ -1706,6 +1779,21 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     if debug(config):
         print('Package install metadata')
         print(json.dumps(installedMetadata, sort_keys = True, indent = 4))
+
+    #------------------------------------------------------
+    # Save a list of the zipfile contents (so the package can be un-installed)
+    #------------------------------------------------------
+    with zipfile.ZipFile(localpath, 'r') as z:
+        list = z.namelist()
+
+    contentsFile2 = packageDir2 + '/contents.txt'
+
+    if verbose(config):
+        print('contentsFile2 = ' + contentsFile2)
+
+    with open(contentsFile2, 'w') as f:
+        for item in list:
+            f.write(item + '\n')
 
 
 ####################################################################################################
@@ -1820,6 +1908,7 @@ def defaultGenerate(config, aol):
             downloadArtifact(config, repository, localRepositoryPath, fileName, mavenGroupId, mavenArtifactId, requiredVersion, isSnapshot)
 
         if needToInstall:
+            unInstallPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath)
             installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requiredVersion, localRepositoryPath)
 
 
@@ -1840,12 +1929,14 @@ def defaultCompile(config, aol):
 
     mkdir_p(config, aol, BUILD_OUTPUT_MAIN_DIR)
 
+    writeCompileTimeMetadata(config, aol)
+
     if aol.operatingSystem == 'windows':
         makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
         source = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
         dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_MAIN_DIR)
 
-        env = getBuildInfo(config, aol, os.environ)
+        env = os.environ
         env['BUILD_TYPE'] = 'static'
         env['SOURCE'] = source
         env['DIST'] = dist
@@ -1874,7 +1965,8 @@ def defaultDistribution(config, aol):
 
 def defaultTestCompile(config, aol):
 
-    print('defaultTestCompile:')
+    if debug(config):
+        print('defaultTestCompile:')
 
     if not os.path.exists(SRC_TEST_DIR):
         if (verbose(config)):
