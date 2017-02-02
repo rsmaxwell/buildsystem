@@ -11,6 +11,7 @@ import re
 import argparse
 import glob
 import requests
+import fnmatch
 import io
 import datetime
 import hashlib
@@ -203,7 +204,7 @@ def exists(config, aol, filename):
         print('    filename = ' + filename)
 
     if not aol.linker.startswith('mingw'):
-        return os.path.exists(packageInfoFilename)
+        return os.path.exists(filename)
     else:
         args = ['bash', '-c', 'ls ' + filename]
 
@@ -2071,12 +2072,14 @@ def defaultTest(config, aol):
 
     else:
         executable = stat.S_IEXEC
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '**/*', recursive=True):
-            if os.path.isfile(filename):
-                st = os.stat(filename)
-                mode = st.st_mode
-                if mode & executable:
-                    testExecutables.append(filename)
+        for root, dirnames, filenames in os.walk(BUILD_OUTPUT_TEST_DIR):
+            for filename in fnmatch.filter(filenames, '*'):
+                pathname = os.path.join(root, filename)
+                if os.path.isfile(pathname):
+                    st = os.stat(pathname)
+                    mode = st.st_mode
+                    if mode & executable:
+                        testExecutables.append(pathname)
 
     if len(testExecutables) == 0:
         print('Error: No tests were found under: ' + BUILD_OUTPUT_TEST_DIR)
