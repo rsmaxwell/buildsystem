@@ -2029,7 +2029,7 @@ def defaultTestCompile(config, aol):
             print('Args = ' + str(args))
             print('cwd = ' + BUILD_OUTPUT_TEST_DIR)
 
-        p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
+        p = subprocess.Popen(['make', '-f', makefile], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
        
