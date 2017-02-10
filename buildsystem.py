@@ -1949,10 +1949,11 @@ def defaultCompile(config, aol):
 
 
 ####################################################################################################
-# Distribution
+# defaultDistribution
 ####################################################################################################
 
 def defaultDistribution(config, aol):
+    print('defaultDistribution')
     pass
 
 
@@ -2029,7 +2030,7 @@ def defaultTestCompile(config, aol):
             print('Args = ' + str(args))
             print('cwd = ' + BUILD_OUTPUT_TEST_DIR)
 
-        p = subprocess.Popen(['make', '-f', makefile], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
        
@@ -2072,7 +2073,7 @@ def defaultTest(config, aol):
 
     else:
         executable = stat.S_IEXEC
-        for root, dirnames, filenames in os.walk(BUILD_OUTPUT_TEST_DIR):
+        for root, dirnames, filenames in os.walk(BUILD_OUTPUT_TEST_DIR + '.libs/'):
             for filename in fnmatch.filter(filenames, '*'):
                 pathname = os.path.join(root, filename)
                 if os.path.isfile(pathname):
@@ -2094,7 +2095,20 @@ def defaultTest(config, aol):
             print('    Running: ' + file)
             print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
 
-        args = [os.path.abspath(file)]
+        source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
+        source = source.replace('\\', '/')
+
+        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
+        dist = dist.replace('\\', '/')
+
+        env = os.environ
+        env['SOURCE'] = source
+        env['DIST'] = dist
+        env['INSTALL'] = INSTALL_DIR
+
+        file = os.path.relpath(BUILD_OUTPUT_TEST_DIR + '.libs/hellotest.exe', BUILD_OUTPUT_TEST_DIR)
+        dist = dist.replace('\\', '/')
+        args = [file]
 
         if verbose(config):
             print('Args = ' + str(args))
