@@ -2311,7 +2311,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     if 'archive' in goals:
         print('goal = archive')
         if archive == None:
-            defaultarchive(config, aol)
+            defaultArchive(config, aol)
         else:
             archive(config, aol)
 
