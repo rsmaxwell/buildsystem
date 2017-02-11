@@ -39,7 +39,6 @@ DEBUG2 = 4
 SRC_MAIN_DIR                             = './src/main/'
 SRC_MAIN_C_DIR                           = './src/main/c/'
 SRC_MAIN_MAKE_DIR                        = './src/main/make/'
-SRC_MAIN_ARCHIVE_DIR                     = './src/main/archive/'
                                         
 SRC_TEST_DIR                             = './src/test/'
 SRC_TEST_C_DIR                           = './src/test/c/'
@@ -1957,6 +1956,19 @@ def defaultDistribution(config, aol):
     pass
 
 
+
+####################################################################################################
+# defaultArchive
+####################################################################################################
+
+def defaultArchive(config, aol):
+    print('defaultArchive')
+
+    artifactId = config["artifactId"]
+    localfile = buildsystem.BUILD_ARTIFACT_DIR + artifactId + '-' + str(aol)
+    shutil.make_archive(localfile, buildsystem.PACKAGING, buildsystem.DIST_DIR)
+
+
 ####################################################################################################
 # Test Compile
 ####################################################################################################
@@ -2051,13 +2063,13 @@ def defaultTestCompile(config, aol):
 ####################################################################################################
 # Test
 #
-# child - The child dir under 'output/test' where we will recursivly look for test executables 
+# child - The child dir under 'output/test' where we will recursively look for test executables 
 #     - on windows                          - '**/*.exe'
 #     - where libtool is used (e.g. cygwin) - '.libs/'
 #     - where gcc is used (e.g. linux)      - ''
 ####################################################################################################
 
-def defaultTest(config, aol, child):
+def defaultTest(config, aol, child=''):
     print('defaultTest')
 
     if not os.path.exists(BUILD_OUTPUT_TEST_DIR):
@@ -2172,7 +2184,7 @@ def defaultDeploy(config, aol):
 # Main Routine
 ####################################################################################################
 
-def main(clean=None, generate=None, configure=None, compile=None, distribution=None, testCompile=None, test=None, deploy=None):
+def main(clean=None, generate=None, configure=None, compile=None, distribution=None, archive=None, testCompile=None, test=None, deploy=None):
 
     ####################################################################################################
     # Parse command line arguments
@@ -2196,7 +2208,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     config['level'] = args.traceLevel
 
     if len(args.goals) == 0:
-        goals = ['clean', 'generate', 'configure', 'compile', 'distribution', 'testCompile', 'test', 'deploy']
+        goals = ['clean', 'generate', 'configure', 'compile', 'distribution', 'archive', 'testCompile', 'test', 'deploy']
     else:
         goals = args.goals
 
@@ -2294,6 +2306,13 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
             defaultDistribution(config, aol)
         else:
             distribution(config, aol)
+
+    if 'archive' in goals:
+        print('goal = archive')
+        if archive == None:
+            defaultarchive(config, aol)
+        else:
+            archive(config, aol)
 
     if 'testCompile' in goals:
         print('goal = testCompile')
