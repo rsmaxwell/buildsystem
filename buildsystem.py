@@ -1966,8 +1966,8 @@ def defaultArchive(config, aol):
     print('defaultArchive')
 
     artifactId = config["artifactId"]
-    localfile = buildsystem.BUILD_ARTIFACT_DIR + artifactId + '-' + str(aol)
-    shutil.make_archive(localfile, buildsystem.PACKAGING, buildsystem.DIST_DIR)
+    localfile = BUILD_ARTIFACT_DIR + artifactId + '-' + str(aol)
+    shutil.make_archive(localfile, PACKAGING, DIST_DIR)
 
 
 ####################################################################################################
