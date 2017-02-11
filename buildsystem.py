@@ -2050,9 +2050,14 @@ def defaultTestCompile(config, aol):
 
 ####################################################################################################
 # Test
+#
+# child - The child dir under 'output/test' where we will recursivly look for test executables 
+#     - on windows                          - '**/*.exe'
+#     - where libtool is used (e.g. cygwin) - '.libs/'
+#     - where gcc is used (e.g. linux)      - ''
 ####################################################################################################
 
-def defaultTest(config, aol):
+def defaultTest(config, aol, child):
     print('defaultTest')
 
     if not os.path.exists(BUILD_OUTPUT_TEST_DIR):
@@ -2062,7 +2067,7 @@ def defaultTest(config, aol):
 
     testExecutables = []
     if aol.operatingSystem == 'windows':
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + '**/*.exe', recursive=True):
+        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + child, recursive=True):
             testExecutables.append(filename)
 
         source = BUILD_OUTPUT_MAIN_DIR + '**/*.dll'
@@ -2073,7 +2078,7 @@ def defaultTest(config, aol):
 
     else:
         executable = stat.S_IEXEC
-        for root, dirnames, filenames in os.walk(BUILD_OUTPUT_TEST_DIR + '.libs/'):
+        for root, dirnames, filenames in os.walk(BUILD_OUTPUT_TEST_DIR + child):
             for filename in fnmatch.filter(filenames, '*'):
                 pathname = os.path.join(root, filename)
                 if os.path.isfile(pathname):
