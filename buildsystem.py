@@ -39,6 +39,7 @@ DEBUG2 = 4
 SRC_MAIN_DIR                             = './src/main/'
 SRC_MAIN_C_DIR                           = './src/main/c/'
 SRC_MAIN_MAKE_DIR                        = './src/main/make/'
+SRC_MAIN_ARCHIVE_DIR                     = './src/main/archive/'
                                         
 SRC_TEST_DIR                             = './src/test/'
 SRC_TEST_C_DIR                           = './src/test/c/'
