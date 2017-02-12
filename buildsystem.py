@@ -1986,79 +1986,44 @@ def defaultTestCompile(config, aol):
 
     mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
 
-    if aol.operatingSystem == 'windows':
-        makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
-        source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
-        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
+    workingDir = BUILD_OUTPUT_TEST_DIR        
+    makefile = os.path.relpath(SRC_TEST_MAKE_DIR, workingDir) + '\\' + str(aol) + '.makefile'
+    source = os.path.relpath(SRC_TEST_C_DIR, workingDir)
+    dist = os.path.relpath(DIST_DIR, workingDir)
+        
+    makefile = makefile.replace('\\', '/')
+    source = source.replace('\\', '/')
+    dist = dist.replace('\\', '/')
 
-        env = os.environ
-        env['BUILD_TYPE'] = 'static'
-        env['SOURCE'] = source
-        env['DIST'] = dist
-        env['INSTALL'] = INSTALL_DIR
+    env = os.environ
+    env['BUILD_TYPE'] = 'static'
+    env['SOURCE'] = source
+    env['DIST'] = dist
+    env['INSTALL'] = INSTALL_DIR
 
-        args = ['make', '-f', makefile, 'clean', 'all']
+    args = ['make', '-f', makefile, 'clean', 'all']
 
-        if (verbose(config)):
-            print('Args = ' + str(args))
-            print('cwd = ' + BUILD_OUTPUT_TEST_DIR)
+    if (verbose(config)):
+        print('Args = ' + str(args))
+        print('cwd = ' + workingDir)
 
-        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
-        stdout, stderr = p.communicate()
-        returncode = p.wait()
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=workingDir)
+    stdout, stderr = p.communicate()
+    returncode = p.wait()
        
-        if (returncode != 0):
-            print('Error: Test Compile failed')
+    if (returncode != 0):
+        print('Error: Test Compile failed')
 
-        if (returncode != 0) or (verbose(config)):
-            print('---------[ stdout ]-----------------------------------------------------------------')
-            print(stdout.decode('utf-8'))
-            print('---------[ stderr ]-----------------------------------------------------------------')
-            print(stderr.decode('utf-8'))
-            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+    if (returncode != 0) or (verbose(config)):
+        print('Working directory = ' + workingDir)
+        print('---------[ stdout ]-----------------------------------------------------------------')
+        print(stdout.decode('utf-8'))
+        print('---------[ stderr ]-----------------------------------------------------------------')
+        print(stderr.decode('utf-8'))
+        print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
-        if (returncode != 0):
-            sys.exit(1)
-
-
-    else:     # Linux or MinGW or CygWin
-        makefile = os.path.relpath(SRC_TEST_MAKE_DIR, BUILD_OUTPUT_TEST_DIR) + '\\' + str(aol) + '.makefile'
-        makefile = makefile.replace('\\', '/')
-
-        source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
-        source = source.replace('\\', '/')
-
-        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
-        dist = dist.replace('\\', '/')
-
-        env = os.environ
-        env['BUILD_TYPE'] = 'static'
-        env['SOURCE'] = source
-        env['DIST'] = dist
-        env['INSTALL'] = INSTALL_DIR
-
-        args = ['make', '-f', makefile, 'clean', 'all']
-
-        if (verbose(config)):
-            print('Args = ' + str(args))
-            print('cwd = ' + BUILD_OUTPUT_TEST_DIR)
-
-        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_TEST_DIR)
-        stdout, stderr = p.communicate()
-        returncode = p.wait()
-       
-        if (returncode != 0):
-            print('Error: Test Compile failed')
-
-        if (returncode != 0) or (verbose(config)):
-            print('---------[ stdout ]-----------------------------------------------------------------')
-            print(stdout.decode('utf-8'))
-            print('---------[ stderr ]-----------------------------------------------------------------')
-            print(stderr.decode('utf-8'))
-            print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
-
-        if (returncode != 0):
-            sys.exit(1)
+    if (returncode != 0):
+        sys.exit(1)
 
 
 ####################################################################################################
@@ -2098,7 +2063,7 @@ def defaultTest(config, aol, child=''):
                     st = os.stat(pathname)
                     mode = st.st_mode
                     if mode & executable:
-                        testExecutables.append(pathname)
+                        testExecutables.append(pathname.replace('\\', '/'))
 
     if len(testExecutables) == 0:
         print('Error: No tests were found under: ' + BUILD_OUTPUT_TEST_DIR)
@@ -2114,22 +2079,26 @@ def defaultTest(config, aol, child=''):
             print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
 
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
-        source = source.replace('\\', '/')
-
         dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
+        program = os.path.relpath(BUILD_OUTPUT_TEST_DIR + file, BUILD_OUTPUT_TEST_DIR)        
+        
+        source = source.replace('\\', '/')        
         dist = dist.replace('\\', '/')
-
+        program = program.replace('\\', os.path.sep).replace('/', os.path.sep)
+                
+        args = [program]
         env = os.environ
         env['SOURCE'] = source
         env['DIST'] = dist
         env['INSTALL'] = INSTALL_DIR
 
-        file = os.path.relpath(BUILD_OUTPUT_TEST_DIR + '.libs/hellotest.exe', BUILD_OUTPUT_TEST_DIR)
-        dist = dist.replace('\\', '/')
-        args = [file]
-
         if verbose(config):
             print('Args = ' + str(args))
+
+        if verbose(config):
+            print('make dir: ' + BUILD_OUTPUT_TEST_DIR)
+            
+        mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
 
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
