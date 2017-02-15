@@ -2085,12 +2085,13 @@ def defaultTest(config, aol, child=''):
 
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
         dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
+        program_relative = os.path.relpath(program, BUILD_OUTPUT_TEST_DIR)
 
         source = source.replace('\\', '/')
         dist = dist.replace('\\', '/')
-        program = program.replace('\\', os.path.sep).replace('/', os.path.sep)
+        program_relative = program_relative.replace('\\', os.path.sep).replace('/', os.path.sep)
 
-        args = [program]
+        args = [program_relative]
 
         env = os.environ
         env['SOURCE'] = source
@@ -2099,9 +2100,6 @@ def defaultTest(config, aol, child=''):
 
         if verbose(config):
             print('Args = ' + str(args))
-
-        if verbose(config):
-            print('make dir: ' + BUILD_OUTPUT_TEST_DIR)
 
         mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
 
