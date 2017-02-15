@@ -2077,21 +2077,21 @@ def defaultTest(config, aol, child=''):
     if (verbose(config)):
         print('Running ' + str(len(testExecutables)) + ' Tests')
 
-    for file in testExecutables:
+    for program in testExecutables:
 
         if (verbose(config)):
-            print('    Running: ' + file)
+            print('    Running: ' + program)
             print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
 
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
         dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
-        program = os.path.relpath(BUILD_OUTPUT_TEST_DIR + file, BUILD_OUTPUT_TEST_DIR)        
-        
-        source = source.replace('\\', '/')        
+
+        source = source.replace('\\', '/')
         dist = dist.replace('\\', '/')
         program = program.replace('\\', os.path.sep).replace('/', os.path.sep)
-                
+
         args = [program]
+
         env = os.environ
         env['SOURCE'] = source
         env['DIST'] = dist
@@ -2102,13 +2102,13 @@ def defaultTest(config, aol, child=''):
 
         if verbose(config):
             print('make dir: ' + BUILD_OUTPUT_TEST_DIR)
-            
+
         mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
 
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
         returncode = p.wait()
-       
+
         if (returncode != 0):
             print('Error: test ' + file + ' failed')
 
