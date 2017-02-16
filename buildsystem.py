@@ -40,11 +40,11 @@ SRC_MAIN_DIR                             = './src/main/'
 SRC_MAIN_C_DIR                           = './src/main/c/'
 SRC_MAIN_MAKE_DIR                        = './src/main/make/'
 SRC_MAIN_ARCHIVE_DIR                     = './src/main/archive/'
-                                        
+
 SRC_TEST_DIR                             = './src/test/'
 SRC_TEST_C_DIR                           = './src/test/c/'
 SRC_TEST_MAKE_DIR                        = './src/test/make/'
-                                        
+
 BUILD_DIR                                = './build/'
 BUILDTEMP_DIR                            = './build.temp/'
 BUILD_SOURCE_DIR                         = './build/source/'
@@ -54,7 +54,7 @@ BUILD_TEMP_DIR                           = './build/temp/'
 BUILD_OUTPUT_MAIN_DIR                    = './build/output/main/'
 BUILD_OUTPUT_TEST_DIR                    = './build/output/test/'
 BUILD_ARTIFACT_DIR                       = './build/artifact/'
-                                       
+
 DIST_DIR                                 = './build/dist/'
 DISTTEMP_DIR                             = './build/dist.temp/'
 DIST_PACKAGES_DIR                        = './build/dist/packages/'
@@ -136,7 +136,7 @@ class AOL:
                         words = line.split()
                         word = words[1]
                         break
-    
+
                 string = word.split('-')
                 self.architecture = string[0]
                 self.operatingSystem = string[1]
@@ -263,7 +263,7 @@ def mkdir_p(config, aol, path):
             print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
         if (returncode != 0):
-            sys.exit(1)       
+            sys.exit(1)
 
 
 ####################################################################################################
@@ -480,7 +480,7 @@ def which(program):
     return None
 
 
-#
+
 ####################################################################################################
 # Get the Root directory
 ####################################################################################################
@@ -507,9 +507,9 @@ def inplace_change(filename, old_string, new_string):
         s = s.replace(old_string, new_string)
         f.write(s)
 
-#
+
 ####################################################################################################
-# Check a sub process completes ok          
+# Check a sub process completes ok
 ####################################################################################################
 
 def checkProcessCompletesOk(config, process, message, expectedReturnCodes=[0]):
@@ -1137,21 +1137,21 @@ def writeCompileTimeMetadata(config, aol):
         json.dump(data, outfile, sort_keys = True, indent = 4)
 
 
-    
+
 ####################################################################################################
-# 
+#
 ####################################################################################################
 def getPackageName(artifactId):
     return artifactId.split('-')[0]
-        
-        
+
+
 ####################################################################################################
-# 
+#
 ####################################################################################################
 def isSnapshot(version):
     return version.endswith('SNAPSHOT')
-    
-    
+
+
 ####################################################################################################
 # Read the "lastUpdated.json" file
 ####################################################################################################
@@ -1199,7 +1199,7 @@ def writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, metadata):
 
     if verbose(config):
         print('Updating local repository metadata')
-    if debug(config):        
+    if debug(config):
         print(json.dumps(metadata, sort_keys = True, indent = 4))
 
 
@@ -1243,14 +1243,14 @@ def checkUpdatePolicy(config, repository, lastChecked):
         updatePolicy = repository[key]
 
         if updatePolicy == 'daily':
-            checkRemoteRepository = False 
-   
+            checkRemoteRepository = False
+
         elif updatePolicy == 'always':
             checkRemoteRepository = True
-          
+
         elif updatePolicy == 'never':
-            checkRemoteRepository = False                     
-                                  
+            checkRemoteRepository = False
+
         else:
             match = re.match('interval:([0-9]{1,10})', updatePolicy)
             if match:
@@ -1266,47 +1266,47 @@ def checkUpdatePolicy(config, repository, lastChecked):
 
     else:
         interval = 24 * 60    # 1 day in minutes
-        checkRemoteRepository = checkUpdatePolicyInterval(config, interval, lastChecked) 
+        checkRemoteRepository = checkUpdatePolicyInterval(config, interval, lastChecked)
 
     return checkRemoteRepository
 
 
 
 ####################################################################################################
-# getVersion package version in remote repository 
+# getVersion package version in remote repository
 ####################################################################################################
 def getRemotePackageVersionFromRemoteMetadata(config, artifactId, requiredVersion, mavenArtifactId, remoteMetadata):
-    
+
     if isSnapshot(requiredVersion):
         key = 'timestamp'
         if not key in remoteMetadata:
             print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-            print('localRepositoryPath = ' + localRepositoryPath) 
-            print(json.dumps(remoteMetadata, sort_keys=True, indent=4))         
+            print('localRepositoryPath = ' + localRepositoryPath)
+            print(json.dumps(remoteMetadata, sort_keys=True, indent=4))
             sys.exit(3)
 
         key = 'buildNumber'
         if not key in remoteMetadata:
             print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-            print('localRepositoryPath = ' + localRepositoryPath) 
-            print(json.dumps(remoteMetadata, sort_keys=True, indent=4))         
+            print('localRepositoryPath = ' + localRepositoryPath)
+            print(json.dumps(remoteMetadata, sort_keys=True, indent=4))
             sys.exit(3)
 
         remotePackageVersion = mavenArtifactId + '-' + requiredVersion.replace('SNAPSHOT', remoteMetadata.get('timestamp')) + '-' + str(remoteMetadata.get('buildNumber'))
     else:
         remotePackageVersion = mavenArtifactId + '-' + requiredVersion
-        
+
     return remotePackageVersion
-        
-        
+
+
 ####################################################################################################
-# getVersion package version in remote repository 
+# getVersion package version in remote repository
 ####################################################################################################
 def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath):
 
     if debug(config):
         print('getRemotePackageVersion:')
-        
+
     packageName = getPackageName(artifactId)
 
     #---------------------------------------------------------------------------
@@ -1326,7 +1326,7 @@ def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, m
             print('Repository:')
             print(json.dumps(repository, sort_keys = True, indent = 4))
 
-        checkRemoteRepository = checkUpdatePolicy(config, repository, lastChecked) 
+        checkRemoteRepository = checkUpdatePolicy(config, repository, lastChecked)
         if not checkRemoteRepository:
             if verbose(config):
                 print('Skipping repository')
@@ -1395,9 +1395,9 @@ def getLocalPackageVersion(config, artifactId, requiredVersion, mavenGroupId, ma
     else:
         print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
         print('localRepositoryPath = ' + localRepositoryPath) 
-        print(json.dumps(localMetadata, sort_keys=True, indent=4))         
+        print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
-        
+
     return localPackageVersion
 
 
@@ -1411,11 +1411,11 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
         print('checkVersionOfLocalPackage:')
 
     packageName = getPackageName(artifactId)
-    
+
     localMetadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
     if localMetadata is None:
         if verbose(config):
-            print('Package ' + packageName + ' not found in local repository. Update needed') 
+            print('Package ' + packageName + ' not found in local repository. Update needed')
         return (True, None)
 
     if verbose(config):
@@ -1423,20 +1423,20 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
 
     if not isSnapshot(requiredVersion):
         return (False, None)  # Nothing to do!
-    
+
     #---------------------------------------------------------------------------
     # Check the snapshot is up-to-date
     #---------------------------------------------------------------------------
     if verbose(config):
-        print('Need to check the snapshot in the local repository is up-to-date')    
-    
+        print('Need to check the snapshot in the local repository is up-to-date')
+
     key = 'originalFilename'
     if key in localMetadata:
         localPackageVersion = localMetadata[key]
     else:
         print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('localRepositoryPath = ' + localRepositoryPath) 
-        print(json.dumps(localMetadata, sort_keys=True, indent=4))         
+        print('localRepositoryPath = ' + localRepositoryPath)
+        print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
 
     if verbose(config):
@@ -1446,9 +1446,9 @@ def checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId
     if remotePackageVersion == None:
         return (False, repository)  # Nothing to do!
     elif localPackageVersion == remotePackageVersion:
-        return (False, repository)  # Nothing to do!     
+        return (False, repository)  # Nothing to do!
     else:
-        return (True, repository) 
+        return (True, repository)
 
 
 ####################################################################################################
@@ -1467,7 +1467,7 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
     #---------------------------------------------------------------------------
     packageInfoFilename = INSTALL_DIR + 'packages/' + packageName + '/metadata.json'
     if verbose(config):
-        print('packageInfoFilename = ' + packageInfoFilename) 
+        print('packageInfoFilename = ' + packageInfoFilename)
 
     if not exists(config, aol, packageInfoFilename):
         if verbose(config):
@@ -1483,12 +1483,12 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
     if verbose(config):
         print('packageInfoFilename2 = ' + packageInfoFilename2)
 
-    with open(packageInfoFilename2) as file:    
+    with open(packageInfoFilename2) as file:
         installedMetadata = json.load(file)
 
     if debug(config):
         print('installedMetadata:')
-        print(json.dumps(installedMetadata, sort_keys=True, indent=4)) 
+        print(json.dumps(installedMetadata, sort_keys=True, indent=4))
 
     installedVersion = installedMetadata['version']
     if verbose(config):
@@ -1506,41 +1506,41 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
 
     if not isSnapshot(requiredVersion):
         return (False, False, repository)  # Nothing to do!
-    
+
     #---------------------------------------------------------------------------
     # Check the snapshot is up-to-date
     #---------------------------------------------------------------------------
     if verbose(config):
-        print('Need to check the snapshot is up-to-date')    
-    
+        print('Need to check the snapshot is up-to-date')
+
     key = 'originalFilename'
     if key in installedMetadata:
         installedPackageVersion = installedMetadata['originalFilename']
     else:
         print('The installed metadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('packageInfoFilename  = ' + packageInfoFilename) 
+        print('packageInfoFilename  = ' + packageInfoFilename)
         print('packageInfoFilename2 = ' + packageInfoFilename2)
-        print(json.dumps(installedMetadata, sort_keys=True, indent=4))         
-        print('The package needs re-installing') 
-        return (False, True, None) 
+        print(json.dumps(installedMetadata, sort_keys=True, indent=4))
+        print('The package needs re-installing')
+        return (False, True, None)
 
     remotePackageVersion, repository = getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
     if remotePackageVersion == None:
         if verbose(config):
-            print('The package is up-to-date')         
-        return (False, False, repository)   # Nothing to do!        
+            print('The package is up-to-date')
+        return (False, False, repository)   # Nothing to do!
     elif installedPackageVersion == remotePackageVersion:
         if verbose(config):
-            print('The package is up-to-date') 
-        return (False, False, repository)   # Nothing to do!     
+            print('The package is up-to-date')
+        return (False, False, repository)   # Nothing to do!
     else:
         localPackageVersion = getLocalPackageVersion(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
         if localPackageVersion == remotePackageVersion:
-            print('The package needs re-installing') 
-            return (False, True, repository) 
+            print('The package needs re-installing')
+            return (False, True, repository)
         else:
-            print('The package needs downloading and re-installing') 
-            return (True, True, repository)         
+            print('The package needs downloading and re-installing')
+            return (True, True, repository)
 
 
 ####################################################################################################
@@ -1661,7 +1661,7 @@ def unInstallPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, req
     packageDir = INSTALL_DIR + 'packages/' + packageName
 
     if verbose(config):
-        print('packageDir = ' + packageDir) 
+        print('packageDir = ' + packageDir)
 
     mkdir_p(config, aol, packageDir)
 
@@ -1733,8 +1733,8 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
         originalFilename = localMetadata[key]
     else:
         print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('localRepositoryPath = ' + localRepositoryPath) 
-        print(json.dumps(localMetadata, sort_keys=True, indent=4))         
+        print('localRepositoryPath = ' + localRepositoryPath)
+        print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
 
     #------------------------------------------------------
@@ -1743,8 +1743,8 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     packageDir = INSTALL_DIR + 'packages/' + packageName
 
     if verbose(config):
-        print('packageDir = ' + packageDir) 
-    
+        print('packageDir = ' + packageDir)
+
     mkdir_p(config, aol, packageDir)
 
     if aol.linker.startswith('ming'):
@@ -1758,7 +1758,7 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
         print('packageInfoFilename2 = ' + packageInfoFilename2)
 
     if os.path.exists(packageInfoFilename2):
-        with open(packageInfoFilename2) as file:    
+        with open(packageInfoFilename2) as file:
             installedMetadata = json.load(file)
     else:
         installedMetadata = {}
@@ -1889,7 +1889,7 @@ def defaultGenerate(config, aol):
             print('    groupId    = ' + groupId)
             print('    artifactId = ' + artifactId)
             print('    version    = ' + requiredVersion)
-        if debug(config):            
+        if debug(config):
             print('    mavenGroupId    = ' + mavenGroupId)
             print('    mavenArtifactId = ' + mavenArtifactId)
             print('    aol             = ' + str(aol))
@@ -1986,11 +1986,11 @@ def defaultTestCompile(config, aol):
 
     mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
 
-    workingDir = BUILD_OUTPUT_TEST_DIR        
+    workingDir = BUILD_OUTPUT_TEST_DIR
     makefile = os.path.relpath(SRC_TEST_MAKE_DIR, workingDir) + '\\' + str(aol) + '.makefile'
     source = os.path.relpath(SRC_TEST_C_DIR, workingDir)
     dist = os.path.relpath(DIST_DIR, workingDir)
-        
+
     makefile = makefile.replace('\\', '/')
     source = source.replace('\\', '/')
     dist = dist.replace('\\', '/')
@@ -2010,7 +2010,7 @@ def defaultTestCompile(config, aol):
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=workingDir)
     stdout, stderr = p.communicate()
     returncode = p.wait()
-       
+
     if (returncode != 0):
         print('Error: Test Compile failed')
 
@@ -2081,13 +2081,13 @@ def defaultTest(config, aol, child=''):
 
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
         dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
-        program_relative = os.path.relpath(program, BUILD_OUTPUT_TEST_DIR)
+        program_relative = './' + os.path.relpath(program, BUILD_OUTPUT_TEST_DIR)
 
         source = source.replace('\\', '/')
         dist = dist.replace('\\', '/')
         program_relative = program_relative.replace('\\', os.path.sep).replace('/', os.path.sep)
 
-        args = ['./' + program_relative]
+        args = [program_relative]
 
         env = os.environ
         env['SOURCE'] = source
@@ -2192,7 +2192,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
 
 
     ####################################################################################################
-    # Find the Architecture-OperatingSystem-Linker (AOL) 
+    # Find the Architecture-OperatingSystem-Linker (AOL)
     ####################################################################################################
     aol = AOL()
 
@@ -2228,12 +2228,12 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     # Init
     ####################################################################################################
     global INSTALL_DIR
-    
+
     if aol.operatingSystem == 'windows':
-        INSTALL_DIR = INSTALL_DIR_WINDOWS 
+        INSTALL_DIR = INSTALL_DIR_WINDOWS
     else:
-        INSTALL_DIR = INSTALL_DIR_LINUX 
-    
+        INSTALL_DIR = INSTALL_DIR_LINUX
+
     mkdir_p(config, aol, INSTALL_DIR)
 
 
