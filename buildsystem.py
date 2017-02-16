@@ -2056,18 +2056,14 @@ def defaultTest(config, aol, child=''):
 
     else:
         executable = stat.S_IEXEC
-        print('xxx(0): BUILD_OUTPUT_TEST_DIR + child')
+
         for root, dirnames, filenames in os.walk(BUILD_OUTPUT_TEST_DIR + child):
-            print('xxx(1)')
             for filename in fnmatch.filter(filenames, '*'):
-                print('xxx(2): ' + filename)
                 pathname = os.path.join(root, filename)
                 if os.path.isfile(pathname):
-                    print('xxx(3)')
                     st = os.stat(pathname)
                     mode = st.st_mode
                     if mode & executable:
-                        print('xxx(4)')
                         testExecutables.append(pathname.replace('\\', '/'))
 
     if len(testExecutables) == 0:
@@ -2091,7 +2087,7 @@ def defaultTest(config, aol, child=''):
         dist = dist.replace('\\', '/')
         program_relative = program_relative.replace('\\', os.path.sep).replace('/', os.path.sep)
 
-        args = [program_relative]
+        args = ['./' + program_relative]
 
         env = os.environ
         env['SOURCE'] = source
