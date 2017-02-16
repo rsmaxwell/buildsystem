@@ -235,13 +235,20 @@ def mkdir_p(config, aol, path):
         print('    path = ' + path)
 
     if not aol.linker.startswith('mingw'):
+
+        if os.path.isdir(path):
+            return 0 
+
         try:
             os.makedirs(path)
         except OSError as exc:  # Python >2.5
             if exc.errno == errno.EEXIST and os.path.isdir(path):
                 pass
             else:
-                raise
+                print('mkdir_p:  Exception = ' + str(exc))
+                print('          errno = ' + str(exc.errno))
+                sys.exit(1)
+
     else:
         args = ['bash', '-c', 'mkdir -p ' + path]
 
