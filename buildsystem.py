@@ -191,7 +191,50 @@ def unzip(config, aol, zipFile, extractDir):
             print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
         if (returncode != 0):
-            sys.exit(1)    
+            sys.exit(1)
+
+
+
+
+
+####################################################################################################
+# Unzip an archive as superuser
+####################################################################################################
+
+def superuser_unzip(config, aol, zipFile, extractDir):
+
+    if debug2(config):
+        print('superuser_unzip:')
+        print('    zipFile = ' + zipFile)
+        print('    extractDir = ' + extractDir)
+
+    if aol.linker.startswith('windows'):
+        args = ['cmd', '/C', 'unzip -o ' + zipFile + ' -d ' + extractDir]
+    else:
+        args = ['sudo', 'unzip -o ' + zipFile + ' -d ' + extractDir]
+
+    if debug(config):
+        print('args = ' + str(args))
+
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    returncode = p.wait()
+
+    if (returncode != 0):
+        print('Error: subprocess.Popen failed')
+
+    if (returncode != 0) or (debug(config)):
+        print('args = ' + str(args))
+        print('---------[ stdout ]-----------------------------------------------------------------')
+        print(stdout.decode('utf-8'))
+        print('---------[ stderr ]-----------------------------------------------------------------')
+        print(stderr.decode('utf-8'))
+        print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+    if (returncode != 0):
+        sys.exit(1)
+
+
 
 
 ####################################################################################################
@@ -225,13 +268,49 @@ def exists(config, aol, filename):
         return (returncode == 0)
 
 ####################################################################################################
+# Make a directory as superuser
+####################################################################################################
+
+def superuser_mkdir(config, aol, path):
+
+    if debug2(config):
+        print('superuser_mkdir:')
+        print('    path = ' + path)
+
+    if aol.linker.startswith('windows'):
+        args = ['cmd', '/C', 'mkdir ' + path]
+    else:
+        args = ['sudo', 'bash', '-c', 'mkdir -p ' + path]
+
+    if debug(config):
+        print('args = ' + str(args))
+
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    returncode = p.wait()
+
+    if (returncode != 0):
+        print('Error: subprocess.Popen failed')
+
+    if (returncode != 0) or (debug(config)):
+        print('---------[ stdout ]-----------------------------------------------------------------')
+        print(stdout.decode('utf-8'))
+        print('---------[ stderr ]-----------------------------------------------------------------')
+        print(stderr.decode('utf-8'))
+        print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
+
+    if (returncode != 0):
+        sys.exit(1)
+
+
+####################################################################################################
 # Make a directory
 ####################################################################################################
 
-def mkdir_p(config, aol, path):
+def mkdir(config, aol, path):
 
     if debug2(config):
-        print('mkdir_p:')
+        print('mkdir:')
         print('    path = ' + path)
 
     if not aol.linker.startswith('mingw'):
@@ -245,15 +324,15 @@ def mkdir_p(config, aol, path):
             if exc.errno == errno.EEXIST and os.path.isdir(path):
                 pass
             else:
-                print('mkdir_p:  Exception = ' + str(exc))
-                print('          errno = ' + str(exc.errno))
+                print('mkdir:  Exception = ' + str(exc))
+                print('        errno = ' + str(exc.errno))
                 sys.exit(1)
 
     else:
         args = ['bash', '-c', 'mkdir -p ' + path]
 
         if debug(config):
-            print('Args = ' + str(args))
+            print('args = ' + str(args))
 
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
@@ -1093,7 +1172,7 @@ def writeCompileTimeMetadata(config, aol):
 
 
     directory = packageDir + 'git.status/'
-    mkdir_p(config, aol, directory)
+    mkdir(config, aol, directory)
 
     with open(directory + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
@@ -1121,7 +1200,7 @@ def writeCompileTimeMetadata(config, aol):
     returncode = p.wait()
 
     directory = packageDir + 'git.diff/'
-    mkdir_p(config, aol, directory)
+    mkdir(config, aol, directory)
 
     with open(directory + 'stdout.txt', "w") as text_file:
         text_file.write(stdout.decode('utf-8'))
@@ -1670,7 +1749,7 @@ def unInstallPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, req
     if verbose(config):
         print('packageDir = ' + packageDir)
 
-    mkdir_p(config, aol, packageDir)
+    superuser_mkdir(config, aol, packageDir)
 
     if aol.linker.startswith('ming'):
         packageDir2 = mingwToNativePath(config, aol, packageDir)
@@ -1730,7 +1809,7 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     if debug(config):
         print('    localpath = ' + localpath)
 
-    unzip(config, aol, localpath, INSTALL_DIR)
+    superuser_unzip(config, aol, localpath, INSTALL_DIR)
 
     localMetadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
     lastChecked = localMetadata['lastChecked']
@@ -1752,7 +1831,7 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     if verbose(config):
         print('packageDir = ' + packageDir)
 
-    mkdir_p(config, aol, packageDir)
+    mkdir(config, aol, packageDir)
 
     if aol.linker.startswith('ming'):
         packageDir2 = mingwToNativePath(config, aol, packageDir)
@@ -1931,7 +2010,7 @@ def defaultConfigure(config, aol):
 def defaultCompile(config, aol):
     print('defaultCompile')
 
-    mkdir_p(config, aol, BUILD_OUTPUT_MAIN_DIR)
+    mkdir(config, aol, BUILD_OUTPUT_MAIN_DIR)
 
     writeCompileTimeMetadata(config, aol)
 
@@ -1991,7 +2070,7 @@ def defaultTestCompile(config, aol):
             print('There is no Test Source directory')
         return
 
-    mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
+    mkdir(config, aol, BUILD_OUTPUT_TEST_DIR)
 
     workingDir = BUILD_OUTPUT_TEST_DIR
     makefile = os.path.relpath(SRC_TEST_MAKE_DIR, workingDir) + '\\' + str(aol) + '.makefile'
@@ -2104,7 +2183,7 @@ def defaultTest(config, aol, child=''):
         if verbose(config):
             print('Args = ' + str(args))
 
-        mkdir_p(config, aol, BUILD_OUTPUT_TEST_DIR)
+        mkdir(config, aol, BUILD_OUTPUT_TEST_DIR)
 
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_OUTPUT_TEST_DIR)
         stdout, stderr = p.communicate()
@@ -2241,7 +2320,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     else:
         INSTALL_DIR = INSTALL_DIR_LINUX
 
-    mkdir_p(config, aol, INSTALL_DIR)
+    mkdir(config, aol, INSTALL_DIR)
 
 
     ####################################################################################################
