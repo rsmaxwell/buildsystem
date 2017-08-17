@@ -316,7 +316,7 @@ def mkdir(config, aol, path):
     if not aol.linker.startswith('mingw'):
 
         if os.path.isdir(path):
-            return 0 
+            return 0
 
         try:
             os.makedirs(path)
@@ -392,7 +392,7 @@ def rmdir(config, aol, directory, temp):
             print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
         if (returncode != 0):
-            sys.exit(1) 
+            sys.exit(1)
 
 
 ####################################################################################################
@@ -426,8 +426,8 @@ def myExpandUserHome(config, aol):
             print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
         if (returncode != 0):
-            sys.exit(1) 
- 
+            sys.exit(1)
+
         result = stdout.decode('utf-8').strip()
         print('myExpandUserHome = ' + result)
         return result
@@ -465,7 +465,7 @@ def mingwToNativePath(config, aol, pathname):
         print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
     if (returncode != 0):
-        sys.exit(1) 
+        sys.exit(1)
 
     result = stdout.decode('utf-8').strip() + '/' + fn
     result = result .replace('/', '\\')
@@ -733,7 +733,7 @@ def getSnapshotMetadataFromRemoteRepository(config, repositoryUrl, mavenGroupId,
     else:
         print('Unexpected Http response ' + str(r.status_code) + ' when getting: maven-metadata.xml')
         print('    metadataUrl: ' + metadataUrl)
-        content = r.raw.decode('utf-8')
+        content = r.raw.read().decode('utf-8')
         print('Content =', content)
         sys.exit(99)
 
@@ -1480,7 +1480,7 @@ def getLocalPackageVersion(config, artifactId, requiredVersion, mavenGroupId, ma
         localPackageVersion = localMetadata[key]
     else:
         print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('localRepositoryPath = ' + localRepositoryPath) 
+        print('localRepositoryPath = ' + localRepositoryPath)
         print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
 
@@ -2115,7 +2115,7 @@ def defaultTestCompile(config, aol):
 ####################################################################################################
 # Test
 #
-# child - The child dir under 'output/test' where we will recursively look for test executables 
+# child - The child dir under 'output/test' where we will recursively look for test executables
 #     - on windows                          - '**/*.exe'
 #     - where libtool is used (e.g. cygwin) - '.libs/'
 #     - where gcc is used (e.g. linux)      - ''
