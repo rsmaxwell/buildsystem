@@ -279,7 +279,6 @@ def superuser_mkdir(config, aol, path):
 
     if aol.operatingSystem == 'windows':
         windowsPath = os.path.abspath(path)
-        print('*** windowsPath = ' + windowsPath)
         args = ['cmd', '/C', 'mkdir ' + windowsPath]
     else:
         args = ['sudo', 'bash', '-c', 'mkdir -p ' + path]
