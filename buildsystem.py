@@ -208,7 +208,7 @@ def superuser_unzip(config, aol, zipFile, extractDir):
         print('    zipFile = ' + zipFile)
         print('    extractDir = ' + extractDir)
 
-    if aol.linker.startswith('windows'):
+    if aol.operatingSystem == 'windows':
         args = ['cmd', '/C', 'unzip -o ' + zipFile + ' -d ' + extractDir]
     else:
         args = ['sudo', 'unzip -o ' + zipFile + ' -d ' + extractDir]
@@ -277,8 +277,10 @@ def superuser_mkdir(config, aol, path):
         print('superuser_mkdir:')
         print('    path = ' + path)
 
-    if aol.linker.startswith('windows'):
-        args = ['cmd', '/C', 'mkdir ' + path]
+    if aol.operatingSystem == 'windows':
+        windowsPath = os.path.abspath(path)
+        print('*** windowsPath = ' + windowsPath)
+        args = ['cmd', '/C', 'mkdir ' + windowsPath]
     else:
         args = ['sudo', 'bash', '-c', 'mkdir -p ' + path]
 
