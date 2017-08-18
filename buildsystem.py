@@ -1562,10 +1562,10 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
         updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
         return (updateNeeded, True, repository)
 
-    if aol.linker.startswith('ming'):
+    if aol.operatingSystem == 'ming':
         packageInfoFilename2 = mingwToNativePath(config, aol, packageInfoFilename)
     else:
-        packageInfoFilename2 = packageInfoFilename
+        packageInfoFilename2 = os.path.abspath(packageInfoFilename)
 
     if verbose(config):
         print('packageInfoFilename2 = ' + packageInfoFilename2)
@@ -2162,27 +2162,28 @@ def defaultTest(config, aol, child=''):
 
     for program in testExecutables:
 
-        if (verbose(config)):
-            print('    Running: ' + program)
-            print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
-
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
         dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
-        program_relative = './' + os.path.relpath(program, BUILD_OUTPUT_TEST_DIR)
+        program_relative = os.path.relpath(program, BUILD_OUTPUT_TEST_DIR)
 
-        source = source.replace('\\', '/')
-        dist = dist.replace('\\', '/')
-        program_relative = program_relative.replace('\\', os.path.sep).replace('/', os.path.sep)
+        if (verbose(config)):
+            print('    Running = ' + program)
+            print('    Program = ' + program_relative)
+            print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
 
-        args = [program_relative]
+        if aol.operatingSystem == 'windows':
+            args = ["cmd", "/c", program_relative]
+        else:
+            args = [program_relative]
+
+        if verbose(config):
+            print('Args = ' + str(args))
 
         env = os.environ
         env['SOURCE'] = source
         env['DIST'] = dist
         env['INSTALL'] = INSTALL_DIR
 
-        if verbose(config):
-            print('Args = ' + str(args))
 
         mkdir(config, aol, BUILD_OUTPUT_TEST_DIR)
 
