@@ -1747,10 +1747,11 @@ def unInstallPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, req
 
     packageDir = INSTALL_DIR + 'packages/' + packageName
 
-    if verbose(config):
-        print('packageDir = ' + packageDir)
-
-    superuser_mkdir(config, aol, packageDir)
+    if os.path.exists(packageDir):
+        print('packageDir = ' + packageDir + ' already exists')
+    else:
+        print('Creating packageDir = ' + packageDir)
+        superuser_mkdir(config, aol, packageDir)
 
     if aol.linker.startswith('ming'):
         packageDir2 = mingwToNativePath(config, aol, packageDir)
@@ -2026,6 +2027,14 @@ def defaultCompile(config, aol):
         env['DIST'] = dist
         env['INSTALL'] = INSTALL_DIR
 
+        if verbose(config):
+            print('cd ' + BUILD_OUTPUT_MAIN_DIR)
+            print('set BUILD_TYPE=' + 'static')
+            print('set SOURCE=' + source)
+            print('set DIST=' + dist)
+            print('set INSTALL=' + INSTALL_DIR)
+            print('make -f ' + makefile + 'clean all')
+
         p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
         checkProcessCompletesOk(config, p, 'Error: Compile failed')
 
@@ -2122,6 +2131,9 @@ def defaultTestCompile(config, aol):
 #     - where gcc is used (e.g. linux)      - ''
 ####################################################################################################
 
+def is_exe(fpath):
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
 def defaultTest(config, aol, child=''):
     print('defaultTest')
 
@@ -2132,8 +2144,23 @@ def defaultTest(config, aol, child=''):
 
     testExecutables = []
     if aol.operatingSystem == 'windows':
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + child, recursive=True):
-            testExecutables.append(filename)
+
+        if (child == ''):
+            pattern = BUILD_OUTPUT_TEST_DIR + '**/*.exe'
+        else:
+            pattern = BUILD_OUTPUT_TEST_DIR + child + '**/*.exe'
+
+        if (debug(config)):
+            print('pattern = ' + pattern)
+
+        for filename in glob.iglob(pattern, recursive=True):
+            if is_exe(filename):
+                if (debug(config)):
+                    print("Adding '" + filename + "' to list of test programs")
+                testExecutables.append(filename)
+            else:
+                if (debug(config)):
+                    print("'" + filename + "' is not a test program")
 
         source = BUILD_OUTPUT_MAIN_DIR + '**/*.dll'
         for file in glob.iglob(source, recursive=True):
