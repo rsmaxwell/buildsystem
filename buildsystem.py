@@ -2045,6 +2045,43 @@ def defaultCompile(config, aol):
 
 
 ####################################################################################################
+# Make check
+####################################################################################################
+
+def defaultCheck(config, aol):
+    print('defaultCheck')
+
+    mkdir(config, aol, BUILD_OUTPUT_MAIN_DIR)
+
+    if aol.operatingSystem == 'windows':
+        makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
+        source = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
+        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_MAIN_DIR)
+
+        env = os.environ
+        env['BUILD_TYPE'] = 'static'
+        env['SOURCE'] = source
+        env['DIST'] = dist
+        env['INSTALL'] = INSTALL_DIR
+
+        if verbose(config):
+            print('cd ' + BUILD_OUTPUT_MAIN_DIR)
+            print('set BUILD_TYPE=' + 'static')
+            print('set SOURCE=' + source)
+            print('set DIST=' + dist)
+            print('set INSTALL=' + INSTALL_DIR)
+            print('make -f ' + makefile + 'clean all')
+
+        p = subprocess.Popen(['make', '-f', makefile, 'check'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
+        checkProcessCompletesOk(config, p, 'Error: Check failed')
+
+
+    else:     # Linux or MinGW or CygWin
+        p = subprocess.Popen(['make', 'check'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_SOURCE_MAIN_DIR)
+        checkProcessCompletesOk(config, p, 'Error: Check failed')
+
+
+####################################################################################################
 # defaultDistribution
 ####################################################################################################
 
@@ -2268,7 +2305,7 @@ def defaultDeploy(config, aol):
 # Main Routine
 ####################################################################################################
 
-def main(clean=None, generate=None, configure=None, compile=None, distribution=None, archive=None, testCompile=None, test=None, deploy=None):
+def main(clean=None, generate=None, configure=None, compile=None, check=None, distribution=None, archive=None, testCompile=None, test=None, deploy=None):
 
     ####################################################################################################
     # Parse command line arguments
@@ -2381,6 +2418,13 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
         print('goal = compile')
         if compile == None:
             defaultCompile(config, aol)
+        else:
+            compile(config, aol)
+
+    if 'check' in goals:
+        print('goal = check')
+        if compile == None:
+            defaultCheck(config, aol)
         else:
             compile(config, aol)
 
