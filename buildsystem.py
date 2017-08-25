@@ -2070,7 +2070,7 @@ def defaultCheck(config, aol):
             print('set SOURCE=' + source)
             print('set DIST=' + dist)
             print('set INSTALL=' + INSTALL_DIR)
-            print('make -f ' + makefile + 'clean all')
+            print('make -f ' + makefile + ' check')
 
         p = subprocess.Popen(['make', '-f', makefile, 'check'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
         checkProcessCompletesOk(config, p, 'Error: Check failed')
