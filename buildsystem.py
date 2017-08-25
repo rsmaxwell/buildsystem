@@ -1140,9 +1140,6 @@ def writeCompileTimeMetadata(config, aol):
     if verbose(config):
         print('writeCompileTimeMetadata')
 
-    raise Exception('Hello')
-    sys.exit(99)
-
     artifactId = config["artifactId"]
     packageName = artifactId.split('-')[0]
     packageDir = DIST_PACKAGES_DIR + packageName + '/'
@@ -2429,7 +2426,7 @@ def main(clean=None, generate=None, configure=None, compile=None, check=None, di
         if check == None:
             defaultCheck(config, aol)
         else:
-            compile(config, aol)
+            check(config, aol)
 
     if 'distribution' in goals:
         print('goal = distribution')
