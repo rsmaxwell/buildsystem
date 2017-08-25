@@ -2329,7 +2329,7 @@ def main(clean=None, generate=None, configure=None, compile=None, check=None, di
     config['level'] = args.traceLevel
 
     if len(args.goals) == 0:
-        goals = ['clean', 'generate', 'configure', 'compile', 'distribution', 'archive', 'testCompile', 'test', 'deploy']
+        goals = ['clean', 'generate', 'configure', 'compile', 'check', 'distribution', 'archive', 'testCompile', 'test', 'deploy']
     else:
         goals = args.goals
 
