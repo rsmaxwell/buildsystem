@@ -1267,7 +1267,7 @@ def readLocalRepositoryPackageMetadata(config, directory):
 
 
 ####################################################################################################
-# Write the "lastUpdated.json" file to the local directory
+# Write the "metadata.json" containing the field "lastUpdated.json" to the local directory
 ####################################################################################################
 
 def writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, metadata):
@@ -1573,13 +1573,17 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
     with open(packageInfoFilename2) as file:
         installedMetadata = json.load(file)
 
+
+    if verbose(config):
+        print('requiredVersion  = ' + requiredVersion)
+
+
     if debug(config):
         print('installedMetadata:')
         print(json.dumps(installedMetadata, sort_keys=True, indent=4))
 
     installedVersion = installedMetadata['version']
     if verbose(config):
-        print('installedVersion = ' + installedVersion)
         print('requiredVersion  = ' + requiredVersion)
 
     if requiredVersion != installedVersion:
@@ -1602,7 +1606,7 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
 
     key = 'originalFilename'
     if key in installedMetadata:
-        installedPackageVersion = installedMetadata['originalFilename']
+        installedPackageVersion = installedMetadata[key]
     else:
         print('The installed metadata for ' + packageName + ' does not contain the key "' + key + '"')
         print('packageInfoFilename  = ' + packageInfoFilename)
@@ -1816,17 +1820,27 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     localMetadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
     lastChecked = localMetadata['lastChecked']
 
-    key = 'originalFilename'
-    if key in localMetadata:
-        originalFilename = localMetadata[key]
+    ORIGINAL_FILENAME = 'originalFilename'
+    VERSION = 'version'
+
+    if ORIGINAL_FILENAME in localMetadata:
+        originalFilename = localMetadata[ORIGINAL_FILENAME]
     else:
-        print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
+        print('Error: The localMetadata for ' + packageName + ' does not contain a field ' + ORIGINAL_FILENAME)
+        print('localRepositoryPath = ' + localRepositoryPath)
+        print(json.dumps(localMetadata, sort_keys=True, indent=4))
+        sys.exit(3)
+
+    if VERSION in localMetadata:
+        version = localMetadata[VERSION]
+    else:
+        print('Error: The localMetadata for ' + packageName + ' does not contain a field ' + VERSION)
         print('localRepositoryPath = ' + localRepositoryPath)
         print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
 
     #------------------------------------------------------
-    # Copy the 'originalFilename' to the installed metadata
+    # Copy the 'originalFilename' and 'version' fields to the installed metadata
     #------------------------------------------------------
     packageDir = INSTALL_DIR + 'packages/' + packageName
 
@@ -1851,7 +1865,8 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     else:
         installedMetadata = {}
 
-    installedMetadata[key] = originalFilename
+    installedMetadata[ORIGINAL_FILENAME] = originalFilename
+    installedMetadata[VERSION] = version
 
     with open(packageInfoFilename2, 'w') as outfile:
         json.dump(installedMetadata, outfile, sort_keys=True, indent=4)
@@ -2351,6 +2366,8 @@ def main(clean=None, generate=None, configure=None, compile=None, check=None, di
     ####################################################################################################
     # Read Configuration files
     ####################################################################################################
+
+    print("args.file = " + args.file)
 
     with open(args.file) as buildfile:
         config.update(json.load(buildfile))
