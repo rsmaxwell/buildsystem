@@ -1,0 +1,15 @@
+
+
+
+                       uses defaulttest
+
+
+                 clean   generate     configure     compile   check    distribution    archive    testCompile  test     deploy
+
+buildsystem
+    jansson              generate     configure     compile            distribution
+    strold                                          compile            distribution
+    cunit                generate     configure     compile            distribution                            test
+    hello                                           compile            distribution
+    janssontest                                     compile            distribution
+
