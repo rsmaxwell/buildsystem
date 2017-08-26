@@ -1240,7 +1240,7 @@ def isSnapshot(version):
 
 
 ####################################################################################################
-# Read the "lastUpdated.json" file
+# Read the local repository metadada file
 ####################################################################################################
 
 def readLocalRepositoryPackageMetadata(config, directory):
@@ -1255,7 +1255,7 @@ def readLocalRepositoryPackageMetadata(config, directory):
 
     if not os.path.exists(filepath):
         if verbose(config):
-            print('Dependency not found in local repository')
+            print('Package metadata not found in local repository')
             print(filepath)
         return None
 
@@ -1267,13 +1267,13 @@ def readLocalRepositoryPackageMetadata(config, directory):
 
 
 ####################################################################################################
-# Write the "metadata.json" containing the field "lastUpdated.json" to the local directory
+# Update the local repository metadata with additional fields
 ####################################################################################################
 
-def writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, metadata):
+def updateLocalRepositoryArtifactMetadata(config, localRepositoryPath, newMetadata):
 
     if debug(config):
-        print('writeLocalRepositoryArtifactMetadata:')
+        print('updateLocalRepositoryArtifactMetadata:')
         print('    localRepositoryPath = ' + localRepositoryPath)
 
     if not os.path.exists(localRepositoryPath):
@@ -1281,12 +1281,24 @@ def writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, metadata):
 
     filepath = localRepositoryPath + '/' + 'metadata.json'
 
+    if os.path.exists(filepath):
+        metadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
+    else:
+        metadata = []
+
+    if debug(config):
+        print("previous metadata:")
+        print(json.dumps(metadata, sort_keys = True, indent = 4))
+
+    metadata.update(newMetadata)
+
     with open(filepath, 'w') as outfile:
         json.dump(metadata, outfile, sort_keys=True, indent=4)
 
     if verbose(config):
-        print('Updating local repository metadata')
+        print('Local repository metadata updated')
     if debug(config):
+        print("updated metadata:")
         print(json.dumps(metadata, sort_keys = True, indent = 4))
 
 
@@ -1449,7 +1461,7 @@ def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, m
         print('remotePackageVersion = ' + remotePackageVersion)
 
     localMetadata['lastChecked'] = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
-    writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
+    updateLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
 
     return (remotePackageVersion, repository)
 
@@ -1688,7 +1700,7 @@ def downloadArtifactFromRepository(config, repository, localRepositoryPath, file
     localMetadata = {}
     localMetadata['originalFilename'] = fileNameExpanded
     localMetadata['lastChecked'] = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
-    writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
+    updateLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
 
     return True
 
@@ -1821,7 +1833,6 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     lastChecked = localMetadata['lastChecked']
 
     ORIGINAL_FILENAME = 'originalFilename'
-    VERSION = 'version'
 
     if ORIGINAL_FILENAME in localMetadata:
         originalFilename = localMetadata[ORIGINAL_FILENAME]
@@ -1831,16 +1842,8 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
         print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
 
-    if VERSION in localMetadata:
-        version = localMetadata[VERSION]
-    else:
-        print('Error: The localMetadata for ' + packageName + ' does not contain a field ' + VERSION)
-        print('localRepositoryPath = ' + localRepositoryPath)
-        print(json.dumps(localMetadata, sort_keys=True, indent=4))
-        sys.exit(3)
-
     #------------------------------------------------------
-    # Copy the 'originalFilename' and 'version' fields to the installed metadata
+    # Copy the 'originalFilename' field to the installed metadata
     #------------------------------------------------------
     packageDir = INSTALL_DIR + 'packages/' + packageName
 
@@ -1866,7 +1869,6 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
         installedMetadata = {}
 
     installedMetadata[ORIGINAL_FILENAME] = originalFilename
-    installedMetadata[VERSION] = version
 
     with open(packageInfoFilename2, 'w') as outfile:
         json.dump(installedMetadata, outfile, sort_keys=True, indent=4)
@@ -1963,7 +1965,7 @@ def defaultClean(config, aol):
 
 
 ####################################################################################################
-# Clean
+# Generate: Download the artifact from nexus to the local repository, then install
 ####################################################################################################
 
 def defaultGenerate(config, aol):
