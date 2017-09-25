@@ -1594,6 +1594,10 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
         print('installedMetadata:')
         print(json.dumps(installedMetadata, sort_keys=True, indent=4))
 
+    if not 'version' in installedMetadata:
+        print('The installed package does not contain a version field')
+        sys.exit(99)
+
     installedVersion = installedMetadata['version']
     if verbose(config):
         print('requiredVersion  = ' + requiredVersion)
