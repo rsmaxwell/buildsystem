@@ -2277,7 +2277,7 @@ def defaultTest(config, aol, child=''):
         returncode = p.wait()
 
         if (returncode != 0):
-            print('Error: test ' + file + ' failed')
+            print('Error: test ' + program + ' failed')
 
         if (returncode != 0) or (verbose(config)):
             print('---------[ stdout ]-----------------------------------------------------------------')
