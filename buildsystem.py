@@ -211,7 +211,7 @@ def superuser_unzip(config, aol, zipFile, extractDir):
     if aol.linker.startswith('windows'):
         args = ['cmd', '/C', 'unzip -o ' + zipFile + ' -d ' + extractDir]
     else:
-        args = ['sudo', 'unzip -o ' + zipFile + ' -d ' + extractDir]
+        args = ['sudo', 'bash', '-c', 'unzip -o ' + zipFile + ' -d ' + extractDir]
 
     if debug(config):
         print('args = ' + str(args))
