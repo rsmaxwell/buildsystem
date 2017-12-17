@@ -208,7 +208,7 @@ def superuser_unzip(config, aol, zipFile, extractDir):
         print('    zipFile = ' + zipFile)
         print('    extractDir = ' + extractDir)
 
-    if aol.linker.startswith('windows'):
+    if aol.operatingSystem == 'windows':
         args = ['cmd', '/C', 'unzip -o ' + zipFile + ' -d ' + extractDir]
     else:
         args = ['sudo', 'bash', '-c', 'unzip -o ' + zipFile + ' -d ' + extractDir]
@@ -277,8 +277,9 @@ def superuser_mkdir(config, aol, path):
         print('superuser_mkdir:')
         print('    path = ' + path)
 
-    if aol.linker.startswith('windows'):
-        args = ['cmd', '/C', 'mkdir ' + path]
+    if aol.operatingSystem == 'windows':
+        windowsPath = os.path.abspath(path)
+        args = ['cmd', '/C', 'mkdir ' + windowsPath]
     else:
         args = ['sudo', 'bash', '-c', 'mkdir -p ' + path]
 
@@ -316,7 +317,7 @@ def mkdir(config, aol, path):
     if not aol.linker.startswith('mingw'):
 
         if os.path.isdir(path):
-            return 0 
+            return 0
 
         try:
             os.makedirs(path)
@@ -392,7 +393,7 @@ def rmdir(config, aol, directory, temp):
             print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
         if (returncode != 0):
-            sys.exit(1) 
+            sys.exit(1)
 
 
 ####################################################################################################
@@ -426,8 +427,8 @@ def myExpandUserHome(config, aol):
             print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
         if (returncode != 0):
-            sys.exit(1) 
- 
+            sys.exit(1)
+
         result = stdout.decode('utf-8').strip()
         print('myExpandUserHome = ' + result)
         return result
@@ -465,7 +466,7 @@ def mingwToNativePath(config, aol, pathname):
         print('---------[ returncode = ' + str(returncode) + ']--------------------------------------------------------')
 
     if (returncode != 0):
-        sys.exit(1) 
+        sys.exit(1)
 
     result = stdout.decode('utf-8').strip() + '/' + fn
     result = result .replace('/', '\\')
@@ -733,7 +734,7 @@ def getSnapshotMetadataFromRemoteRepository(config, repositoryUrl, mavenGroupId,
     else:
         print('Unexpected Http response ' + str(r.status_code) + ' when getting: maven-metadata.xml')
         print('    metadataUrl: ' + metadataUrl)
-        content = r.raw.decode('utf-8')
+        content = r.raw.read().decode('utf-8')
         print('Content =', content)
         sys.exit(99)
 
@@ -1239,7 +1240,7 @@ def isSnapshot(version):
 
 
 ####################################################################################################
-# Read the "lastUpdated.json" file
+# Read the local repository metadada file
 ####################################################################################################
 
 def readLocalRepositoryPackageMetadata(config, directory):
@@ -1254,7 +1255,7 @@ def readLocalRepositoryPackageMetadata(config, directory):
 
     if not os.path.exists(filepath):
         if verbose(config):
-            print('Dependency not found in local repository')
+            print('Package metadata not found in local repository')
             print(filepath)
         return None
 
@@ -1266,13 +1267,13 @@ def readLocalRepositoryPackageMetadata(config, directory):
 
 
 ####################################################################################################
-# Write the "lastUpdated.json" file to the local directory
+# Update the local repository metadata with additional fields
 ####################################################################################################
 
-def writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, metadata):
+def updateLocalRepositoryArtifactMetadata(config, localRepositoryPath, newMetadata):
 
     if debug(config):
-        print('writeLocalRepositoryArtifactMetadata:')
+        print('updateLocalRepositoryArtifactMetadata:')
         print('    localRepositoryPath = ' + localRepositoryPath)
 
     if not os.path.exists(localRepositoryPath):
@@ -1280,12 +1281,24 @@ def writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, metadata):
 
     filepath = localRepositoryPath + '/' + 'metadata.json'
 
+    if os.path.exists(filepath):
+        metadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
+    else:
+        metadata = []
+
+    if debug(config):
+        print("previous metadata:")
+        print(json.dumps(metadata, sort_keys = True, indent = 4))
+
+    metadata.update(newMetadata)
+
     with open(filepath, 'w') as outfile:
         json.dump(metadata, outfile, sort_keys=True, indent=4)
 
     if verbose(config):
-        print('Updating local repository metadata')
+        print('Local repository metadata updated')
     if debug(config):
+        print("updated metadata:")
         print(json.dumps(metadata, sort_keys = True, indent = 4))
 
 
@@ -1448,7 +1461,7 @@ def getRemotePackageVersion(config, artifactId, requiredVersion, mavenGroupId, m
         print('remotePackageVersion = ' + remotePackageVersion)
 
     localMetadata['lastChecked'] = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
-    writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
+    updateLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
 
     return (remotePackageVersion, repository)
 
@@ -1480,7 +1493,7 @@ def getLocalPackageVersion(config, artifactId, requiredVersion, mavenGroupId, ma
         localPackageVersion = localMetadata[key]
     else:
         print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
-        print('localRepositoryPath = ' + localRepositoryPath) 
+        print('localRepositoryPath = ' + localRepositoryPath)
         print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
 
@@ -1561,10 +1574,10 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
         updateNeeded, repository = checkVersionOfLocalPackage(config, artifactId, requiredVersion, mavenGroupId, mavenArtifactId, localRepositoryPath)
         return (updateNeeded, True, repository)
 
-    if aol.linker.startswith('ming'):
+    if aol.operatingSystem == 'ming':
         packageInfoFilename2 = mingwToNativePath(config, aol, packageInfoFilename)
     else:
-        packageInfoFilename2 = packageInfoFilename
+        packageInfoFilename2 = os.path.abspath(packageInfoFilename)
 
     if verbose(config):
         print('packageInfoFilename2 = ' + packageInfoFilename2)
@@ -1572,13 +1585,21 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
     with open(packageInfoFilename2) as file:
         installedMetadata = json.load(file)
 
+
+    if verbose(config):
+        print('requiredVersion  = ' + requiredVersion)
+
+
     if debug(config):
         print('installedMetadata:')
         print(json.dumps(installedMetadata, sort_keys=True, indent=4))
 
+    if not 'version' in installedMetadata:
+        print('The installed package does not contain a version field')
+        sys.exit(99)
+
     installedVersion = installedMetadata['version']
     if verbose(config):
-        print('installedVersion = ' + installedVersion)
         print('requiredVersion  = ' + requiredVersion)
 
     if requiredVersion != installedVersion:
@@ -1601,7 +1622,7 @@ def checkVersionOfInstalledPackage(config, aol, artifactId, requiredVersion, mav
 
     key = 'originalFilename'
     if key in installedMetadata:
-        installedPackageVersion = installedMetadata['originalFilename']
+        installedPackageVersion = installedMetadata[key]
     else:
         print('The installed metadata for ' + packageName + ' does not contain the key "' + key + '"')
         print('packageInfoFilename  = ' + packageInfoFilename)
@@ -1683,7 +1704,7 @@ def downloadArtifactFromRepository(config, repository, localRepositoryPath, file
     localMetadata = {}
     localMetadata['originalFilename'] = fileNameExpanded
     localMetadata['lastChecked'] = '{:%Y%m%d.%H%M%S}'.format(datetime.datetime.now())
-    writeLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
+    updateLocalRepositoryArtifactMetadata(config, localRepositoryPath, localMetadata)
 
     return True
 
@@ -1746,10 +1767,11 @@ def unInstallPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, req
 
     packageDir = INSTALL_DIR + 'packages/' + packageName
 
-    if verbose(config):
-        print('packageDir = ' + packageDir)
-
-    superuser_mkdir(config, aol, packageDir)
+    if os.path.exists(packageDir):
+        print('packageDir = ' + packageDir + ' already exists')
+    else:
+        print('Creating packageDir = ' + packageDir)
+        superuser_mkdir(config, aol, packageDir)
 
     if aol.linker.startswith('ming'):
         packageDir2 = mingwToNativePath(config, aol, packageDir)
@@ -1814,17 +1836,18 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     localMetadata = readLocalRepositoryPackageMetadata(config, localRepositoryPath)
     lastChecked = localMetadata['lastChecked']
 
-    key = 'originalFilename'
-    if key in localMetadata:
-        originalFilename = localMetadata[key]
+    ORIGINAL_FILENAME = 'originalFilename'
+
+    if ORIGINAL_FILENAME in localMetadata:
+        originalFilename = localMetadata[ORIGINAL_FILENAME]
     else:
-        print('Error: The localMetadata for ' + packageName + ' does not contain the key "' + key + '"')
+        print('Error: The localMetadata for ' + packageName + ' does not contain a field ' + ORIGINAL_FILENAME)
         print('localRepositoryPath = ' + localRepositoryPath)
         print(json.dumps(localMetadata, sort_keys=True, indent=4))
         sys.exit(3)
 
     #------------------------------------------------------
-    # Copy the 'originalFilename' to the installed metadata
+    # Copy the 'originalFilename' field to the installed metadata
     #------------------------------------------------------
     packageDir = INSTALL_DIR + 'packages/' + packageName
 
@@ -1849,7 +1872,7 @@ def installPackage(config, aol, artifactId, mavenGroupId, mavenArtifactId, requi
     else:
         installedMetadata = {}
 
-    installedMetadata[key] = originalFilename
+    installedMetadata[ORIGINAL_FILENAME] = originalFilename
 
     with open(packageInfoFilename2, 'w') as outfile:
         json.dump(installedMetadata, outfile, sort_keys=True, indent=4)
@@ -1946,7 +1969,7 @@ def defaultClean(config, aol):
 
 
 ####################################################################################################
-# Clean
+# Generate: Download the artifact from nexus to the local repository, then install
 ####################################################################################################
 
 def defaultGenerate(config, aol):
@@ -2025,6 +2048,14 @@ def defaultCompile(config, aol):
         env['DIST'] = dist
         env['INSTALL'] = INSTALL_DIR
 
+        if verbose(config):
+            print('cd ' + BUILD_OUTPUT_MAIN_DIR)
+            print('set BUILD_TYPE=' + 'static')
+            print('set SOURCE=' + source)
+            print('set DIST=' + dist)
+            print('set INSTALL=' + INSTALL_DIR)
+            print('make -f ' + makefile + 'clean all')
+
         p = subprocess.Popen(['make', '-f', makefile, 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
         checkProcessCompletesOk(config, p, 'Error: Compile failed')
 
@@ -2032,6 +2063,43 @@ def defaultCompile(config, aol):
     else:     # Linux or MinGW or CygWin
         p = subprocess.Popen(['make', 'clean', 'all'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_SOURCE_MAIN_DIR)
         checkProcessCompletesOk(config, p, 'Error: Compile failed')
+
+
+####################################################################################################
+# Make check
+####################################################################################################
+
+def defaultCheck(config, aol):
+    print('defaultCheck')
+
+    mkdir(config, aol, BUILD_OUTPUT_MAIN_DIR)
+
+    if aol.operatingSystem == 'windows':
+        makefile = os.path.relpath(SRC_MAIN_MAKE_DIR, BUILD_OUTPUT_MAIN_DIR) + '\\' + str(aol) + '.makefile'
+        source = os.path.relpath(SRC_MAIN_C_DIR, BUILD_OUTPUT_MAIN_DIR)
+        dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_MAIN_DIR)
+
+        env = os.environ
+        env['BUILD_TYPE'] = 'static'
+        env['SOURCE'] = source
+        env['DIST'] = dist
+        env['INSTALL'] = INSTALL_DIR
+
+        if verbose(config):
+            print('cd ' + BUILD_OUTPUT_MAIN_DIR)
+            print('set BUILD_TYPE=' + 'static')
+            print('set SOURCE=' + source)
+            print('set DIST=' + dist)
+            print('set INSTALL=' + INSTALL_DIR)
+            print('make -f ' + makefile + ' check')
+
+        p = subprocess.Popen(['make', '-f', makefile, 'check'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=BUILD_OUTPUT_MAIN_DIR)
+        checkProcessCompletesOk(config, p, 'Error: Check failed')
+
+
+    else:     # Linux or MinGW or CygWin
+        p = subprocess.Popen(['make', 'check'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=BUILD_SOURCE_MAIN_DIR)
+        checkProcessCompletesOk(config, p, 'Error: Check failed')
 
 
 ####################################################################################################
@@ -2115,11 +2183,14 @@ def defaultTestCompile(config, aol):
 ####################################################################################################
 # Test
 #
-# child - The child dir under 'output/test' where we will recursively look for test executables 
+# child - The child dir under 'output/test' where we will recursively look for test executables
 #     - on windows                          - '**/*.exe'
 #     - where libtool is used (e.g. cygwin) - '.libs/'
 #     - where gcc is used (e.g. linux)      - ''
 ####################################################################################################
+
+def is_exe(fpath):
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 def defaultTest(config, aol, child=''):
     print('defaultTest')
@@ -2131,8 +2202,23 @@ def defaultTest(config, aol, child=''):
 
     testExecutables = []
     if aol.operatingSystem == 'windows':
-        for filename in glob.iglob(BUILD_OUTPUT_TEST_DIR + child, recursive=True):
-            testExecutables.append(filename)
+
+        if (child == ''):
+            pattern = BUILD_OUTPUT_TEST_DIR + '**/*.exe'
+        else:
+            pattern = BUILD_OUTPUT_TEST_DIR + child + '**/*.exe'
+
+        if (debug(config)):
+            print('pattern = ' + pattern)
+
+        for filename in glob.iglob(pattern, recursive=True):
+            if is_exe(filename):
+                if (debug(config)):
+                    print("Adding '" + filename + "' to list of test programs")
+                testExecutables.append(filename)
+            else:
+                if (debug(config)):
+                    print("'" + filename + "' is not a test program")
 
         source = BUILD_OUTPUT_MAIN_DIR + '**/*.dll'
         for file in glob.iglob(source, recursive=True):
@@ -2161,27 +2247,28 @@ def defaultTest(config, aol, child=''):
 
     for program in testExecutables:
 
-        if (verbose(config)):
-            print('    Running: ' + program)
-            print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
-
         source = os.path.relpath(SRC_TEST_C_DIR, BUILD_OUTPUT_TEST_DIR)
         dist = os.path.relpath(DIST_DIR, BUILD_OUTPUT_TEST_DIR)
-        program_relative = './' + os.path.relpath(program, BUILD_OUTPUT_TEST_DIR)
+        program_relative = os.path.relpath(program, BUILD_OUTPUT_TEST_DIR)
 
-        source = source.replace('\\', '/')
-        dist = dist.replace('\\', '/')
-        program_relative = program_relative.replace('\\', os.path.sep).replace('/', os.path.sep)
+        if (verbose(config)):
+            print('    Running = ' + program)
+            print('    Program = ' + program_relative)
+            print('    Working Directory = ' + BUILD_OUTPUT_TEST_DIR)
 
-        args = [program_relative]
+        if aol.operatingSystem == 'windows':
+            args = ["cmd", "/c", program_relative]
+        else:
+            args = [program_relative]
+
+        if verbose(config):
+            print('Args = ' + str(args))
 
         env = os.environ
         env['SOURCE'] = source
         env['DIST'] = dist
         env['INSTALL'] = INSTALL_DIR
 
-        if verbose(config):
-            print('Args = ' + str(args))
 
         mkdir(config, aol, BUILD_OUTPUT_TEST_DIR)
 
@@ -2190,7 +2277,7 @@ def defaultTest(config, aol, child=''):
         returncode = p.wait()
 
         if (returncode != 0):
-            print('Error: test ' + file + ' failed')
+            print('Error: test ' + program + ' failed')
 
         if (returncode != 0) or (verbose(config)):
             print('---------[ stdout ]-----------------------------------------------------------------')
@@ -2239,7 +2326,7 @@ def defaultDeploy(config, aol):
 # Main Routine
 ####################################################################################################
 
-def main(clean=None, generate=None, configure=None, compile=None, distribution=None, archive=None, testCompile=None, test=None, deploy=None):
+def main(clean=None, generate=None, configure=None, compile=None, check=None, distribution=None, archive=None, testCompile=None, test=None, deploy=None):
 
     ####################################################################################################
     # Parse command line arguments
@@ -2263,7 +2350,7 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     config['level'] = args.traceLevel
 
     if len(args.goals) == 0:
-        goals = ['clean', 'generate', 'configure', 'compile', 'distribution', 'archive', 'testCompile', 'test', 'deploy']
+        goals = ['clean', 'generate', 'configure', 'compile', 'check', 'distribution', 'archive', 'testCompile', 'test', 'deploy']
     else:
         goals = args.goals
 
@@ -2285,6 +2372,8 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
     ####################################################################################################
     # Read Configuration files
     ####################################################################################################
+
+    print("args.file = " + args.file)
 
     with open(args.file) as buildfile:
         config.update(json.load(buildfile))
@@ -2354,6 +2443,13 @@ def main(clean=None, generate=None, configure=None, compile=None, distribution=N
             defaultCompile(config, aol)
         else:
             compile(config, aol)
+
+    if 'check' in goals:
+        print('goal = check')
+        if check == None:
+            defaultCheck(config, aol)
+        else:
+            check(config, aol)
 
     if 'distribution' in goals:
         print('goal = distribution')
